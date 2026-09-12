@@ -1,4 +1,5 @@
-const API_ORIGIN = 'http://127.0.0.1:8000'
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
+const API_ORIGIN = API_BASE.replace(/\/api\/?$/, '')
 
 export function getImageUrl(path) {
   if (!path) return null

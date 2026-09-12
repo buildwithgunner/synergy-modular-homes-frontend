@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Header from '../components/Header'
 
-const API_BASE = 'http://127.0.0.1:8000/api'
+const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 
 export default function Contact() {
   const [form, setForm] = useState({
