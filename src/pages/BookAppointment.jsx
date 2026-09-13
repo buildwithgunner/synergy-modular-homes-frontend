@@ -199,7 +199,7 @@ export default function BookAppointment() {
                   <div>
                     <p className="font-semibold text-[#0B1C33]">Phone</p>
                     <p className="text-sm text-slate-600 mt-0.5">
-                      (555) 019-2831
+                      (563) 571-04448
                     </p>
                   </div>
                 </div>
@@ -259,10 +259,10 @@ export default function BookAppointment() {
                   Call us directly and we’ll assist you right away.
                 </p>
                 <a
-                  href="tel:5550192831"
+                  href="tel:56357104448"
                   className="inline-flex items-center gap-2 bg-[#C9A66B] text-[#0B1C33] font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-[#B87333] hover:text-white transition"
                 >
-                  Call (555) 019-2831
+                  Call (563) 571-04448
                 </a>
               </div>
             </div>
@@ -314,7 +314,7 @@ export default function BookAppointment() {
                         setForm({ ...form, phone: e.target.value })
                       }
                       className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#B87333] focus:border-transparent outline-none transition"
-                      placeholder="(555) 000-0000"
+                      placeholder="(563) 571-04448"
                     />
                   </div>
                 </div>
