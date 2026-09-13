@@ -88,9 +88,9 @@ export default function AdminHomes() {
       if (!res.ok) throw new Error('Failed to fetch homes')
       const data = await res.json()
       setHomes(Array.isArray(data) ? data : [])
-    } catch (err) {
+    } c} catch (err) {
       console.error(err)
-    } fontally {
+    } finally {
       setLoading(false)
     }
   }
