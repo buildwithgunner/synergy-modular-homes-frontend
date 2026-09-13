@@ -90,7 +90,7 @@ export default function AdminHomes() {
       setHomes(Array.isArray(data) ? data : [])
     } catch (err) {
       console.error(err)
-    } finally {
+    } fontally {
       setLoading(false)
     }
   }
@@ -223,13 +223,14 @@ export default function AdminHomes() {
     setSaving(true)
 
     try {
+      const token = localStorage.getItem('token')
+
       const formData = new FormData()
 
       formData.append('title', form.title.trim())
       formData.append('house_name', form.house_name.trim())
       formData.append('price_min', form.price_min)
       if (form.price_max) formData.append('price_max', form.price_max)
-      // Keep old price field in sync (use min as default)
       formData.append('price', form.price_min)
       formData.append('currency', form.currency)
 
@@ -270,7 +271,10 @@ export default function AdminHomes() {
 
       const res = await fetch(url, {
         method: 'POST',
-        headers: { Accept: 'application/json' },
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       })
 
@@ -297,9 +301,14 @@ export default function AdminHomes() {
   const handleDelete = async (id) => {
     if (!window.confirm('Are you sure you want to delete this home?')) return
     try {
+      const token = localStorage.getItem('token')
+
       const res = await fetch(`${API_BASE}/homes/${id}`, {
         method: 'DELETE',
-        headers: { Accept: 'application/json' },
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
       })
       if (!res.ok) throw new Error('Failed to delete')
       await fetchHomes()
