@@ -95,7 +95,7 @@ export default function BookAppointment() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-[#F8F7F4]">
       <Header />
 
       <div className="max-w-6xl mx-auto px-4 py-10">
@@ -130,7 +130,7 @@ export default function BookAppointment() {
             <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 text-3xl font-bold">
               ✓
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 mb-3">
+            <h1 className="text-3xl font-bold text-[#0B1C33] mb-3">
               Appointment Requested!
             </h1>
             <p className="text-slate-600 mb-8">
@@ -142,7 +142,7 @@ export default function BookAppointment() {
                 <button
                   type="button"
                   onClick={() => navigate('/user/appointments')}
-                  className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 transition"
+                  className="px-6 py-3 rounded-xl bg-[#0B1C33] hover:bg-[#B87333] text-white font-medium transition"
                 >
                   View My Appointments
                 </button>
@@ -169,7 +169,7 @@ export default function BookAppointment() {
             {/* Left Info */}
             <div className="lg:col-span-2 space-y-8">
               <div>
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 leading-tight mb-4">
+                <h1 className="text-3xl sm:text-4xl font-extrabold text-[#0B1C33] leading-tight mb-4">
                   Book Your Appointment
                 </h1>
                 <p className="text-slate-600 leading-relaxed">
@@ -179,9 +179,9 @@ export default function BookAppointment() {
                 </p>
               </div>
 
-              <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-5">
+              <div className="bg-white rounded-2xl border border-slate-100 p-6 space-y-5">
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-[#0B1C33] text-[#C9A66B] rounded-xl flex items-center justify-center flex-shrink-0">
                     <svg
                       className="w-5 h-5"
                       fill="none"
@@ -197,7 +197,7 @@ export default function BookAppointment() {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900">Phone</p>
+                    <p className="font-semibold text-[#0B1C33]">Phone</p>
                     <p className="text-sm text-slate-600 mt-0.5">
                       (555) 019-2831
                     </p>
@@ -205,7 +205,7 @@ export default function BookAppointment() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-[#0B1C33] text-[#C9A66B] rounded-xl flex items-center justify-center flex-shrink-0">
                     <svg
                       className="w-5 h-5"
                       fill="none"
@@ -221,15 +221,15 @@ export default function BookAppointment() {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900">Email</p>
+                    <p className="font-semibold text-[#0B1C33]">Email</p>
                     <p className="text-sm text-slate-600 mt-0.5">
-                      sales@mobilehomesdirect.com
+                      info@api.synergymodularhomes.com
                     </p>
                   </div>
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 bg-[#0B1C33] text-[#C9A66B] rounded-xl flex items-center justify-center flex-shrink-0">
                     <svg
                       className="w-5 h-5"
                       fill="none"
@@ -245,7 +245,7 @@ export default function BookAppointment() {
                     </svg>
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900">Hours</p>
+                    <p className="font-semibold text-[#0B1C33]">Hours</p>
                     <p className="text-sm text-slate-600 mt-0.5">
                       Mon – Sat: 9:00 AM – 6:00 PM
                     </p>
@@ -253,14 +253,14 @@ export default function BookAppointment() {
                 </div>
               </div>
 
-              <div className="bg-blue-600 rounded-2xl p-6 text-white">
+              <div className="bg-[#0B1C33] rounded-2xl p-6 text-white">
                 <p className="font-semibold mb-1">Prefer to talk now?</p>
-                <p className="text-blue-100 text-sm mb-4">
+                <p className="text-slate-300 text-sm mb-4">
                   Call us directly and we’ll assist you right away.
                 </p>
                 <a
                   href="tel:5550192831"
-                  className="inline-flex items-center gap-2 bg-white text-blue-600 font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-blue-50 transition"
+                  className="inline-flex items-center gap-2 bg-[#C9A66B] text-[#0B1C33] font-bold px-5 py-2.5 rounded-xl text-sm hover:bg-[#B87333] hover:text-white transition"
                 >
                   Call (555) 019-2831
                 </a>
@@ -271,9 +271,9 @@ export default function BookAppointment() {
             <div className="lg:col-span-3">
               <form
                 onSubmit={handleSubmit}
-                className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-5"
+                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 sm:p-8 space-y-5"
               >
-                <h2 className="text-xl font-bold text-slate-900 mb-1">
+                <h2 className="text-xl font-bold text-[#0B1C33] mb-1">
                   Request an Appointment
                 </h2>
                 <p className="text-sm text-slate-500 mb-2">
@@ -298,7 +298,7 @@ export default function BookAppointment() {
                       onChange={(e) =>
                         setForm({ ...form, name: e.target.value })
                       }
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#B87333] focus:border-transparent outline-none transition"
                       placeholder="John Doe"
                     />
                   </div>
@@ -313,7 +313,7 @@ export default function BookAppointment() {
                       onChange={(e) =>
                         setForm({ ...form, phone: e.target.value })
                       }
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#B87333] focus:border-transparent outline-none transition"
                       placeholder="(555) 000-0000"
                     />
                   </div>
@@ -329,7 +329,7 @@ export default function BookAppointment() {
                     onChange={(e) =>
                       setForm({ ...form, email: e.target.value })
                     }
-                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#B87333] focus:border-transparent outline-none transition"
                     placeholder="you@example.com"
                   />
                 </div>
@@ -344,7 +344,7 @@ export default function BookAppointment() {
                       onClick={() => setForm({ ...form, type: 'in-person' })}
                       className={`py-3 px-4 rounded-xl border text-sm font-medium transition ${
                         form.type === 'in-person'
-                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          ? 'border-[#0B1C33] bg-[#0B1C33] text-white'
                           : 'border-slate-200 text-slate-600 hover:border-slate-300'
                       }`}
                     >
@@ -355,7 +355,7 @@ export default function BookAppointment() {
                       onClick={() => setForm({ ...form, type: 'virtual' })}
                       className={`py-3 px-4 rounded-xl border text-sm font-medium transition ${
                         form.type === 'virtual'
-                          ? 'border-blue-600 bg-blue-50 text-blue-700'
+                          ? 'border-[#0B1C33] bg-[#0B1C33] text-white'
                           : 'border-slate-200 text-slate-600 hover:border-slate-300'
                       }`}
                     >
@@ -375,7 +375,7 @@ export default function BookAppointment() {
                       onChange={(e) =>
                         setForm({ ...form, date: e.target.value })
                       }
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#B87333] focus:border-transparent outline-none transition"
                     />
                   </div>
                   <div>
@@ -387,7 +387,7 @@ export default function BookAppointment() {
                       onChange={(e) =>
                         setForm({ ...form, time: e.target.value })
                       }
-                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition"
+                      className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#B87333] focus:border-transparent outline-none transition"
                     >
                       <option value="">Select time</option>
                       <option value="9:00 AM">9:00 AM</option>
@@ -412,7 +412,7 @@ export default function BookAppointment() {
                     onChange={(e) =>
                       setForm({ ...form, notes: e.target.value })
                     }
-                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition resize-none"
+                    className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[#B87333] focus:border-transparent outline-none transition resize-none"
                     placeholder="Any specific homes you're interested in or questions..."
                   ></textarea>
                 </div>
@@ -420,7 +420,7 @@ export default function BookAppointment() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold py-3.5 rounded-xl transition text-base"
+                  className="w-full bg-[#0B1C33] hover:bg-[#B87333] disabled:opacity-60 text-white font-bold py-3.5 rounded-xl transition text-base"
                 >
                   {submitting ? 'Submitting...' : 'Book Appointment'}
                 </button>
