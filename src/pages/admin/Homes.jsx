@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 
@@ -80,12 +81,35 @@ export default function AdminHomes() {
   const [newAmenity, setNewAmenity] = useState('')
   const [imagePreview, setImagePreview] = useState(null)
   const [galleryPreviews, setGalleryPreviews] = useState([])
+  const navigate = useNavigate()
+
+  const handleAuthError = () => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    localStorage.removeItem('role')
+    alert('Your session has expired or is unauthorized. Please sign in again.')
+    navigate('/admin/login')
+  }
 
   const fetchHomes = async () => {
     try {
       setLoading(true)
-      const res = await fetch(`${API_BASE}/homes`)
+      const token = localStorage.getItem('token')
+
+      const res = await fetch(`${API_BASE}/homes`, {
+        headers: {
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+
+      if (res.status === 401) {
+        handleAuthError()
+        return
+      }
+
       if (!res.ok) throw new Error('Failed to fetch homes')
+
       const data = await res.json()
       setHomes(Array.isArray(data) ? data : [])
     } catch (err) {
@@ -224,6 +248,10 @@ export default function AdminHomes() {
 
     try {
       const token = localStorage.getItem('token')
+      if (!token) {
+        handleAuthError()
+        return
+      }
 
       const formData = new FormData()
 
@@ -278,6 +306,11 @@ export default function AdminHomes() {
         body: formData,
       })
 
+      if (res.status === 401) {
+        handleAuthError()
+        return
+      }
+
       const data = await res.json().catch(() => null)
 
       if (!res.ok) {
@@ -310,6 +343,12 @@ export default function AdminHomes() {
           Authorization: `Bearer ${token}`,
         },
       })
+
+      if (res.status === 401) {
+        handleAuthError()
+        return
+      }
+
       if (!res.ok) throw new Error('Failed to delete')
       await fetchHomes()
     } catch (err) {
