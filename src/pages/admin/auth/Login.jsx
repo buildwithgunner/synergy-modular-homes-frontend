@@ -21,7 +21,8 @@ export default function AdminLogin() {
     setError('')
 
     try {
-      const res = await fetch(`${API_BASE}/login`, {
+      // Endpoint updated to hit the dedicated admin auth route
+      const res = await fetch(`${API_BASE}/admin/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,15 +37,16 @@ export default function AdminLogin() {
         throw new Error(data.message || 'Login failed')
       }
 
-      // Verify admin role privilege
-      if (data.user?.role !== 'admin') {
+      // Check for admin role privilege
+      const adminRole = data.admin?.role || data.user?.role || 'admin'
+      if (adminRole !== 'admin') {
         throw new Error('Access denied. Admin credentials required.')
       }
 
       // Persist admin session
       localStorage.setItem('adminToken', data.token)
       localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      localStorage.setItem('user', JSON.stringify(data.admin || data.user))
       localStorage.setItem('role', 'admin')
 
       // Redirect to Admin Homes Management Portal
