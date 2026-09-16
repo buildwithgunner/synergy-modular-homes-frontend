@@ -68,7 +68,12 @@ export default function PreApproved() {
     }
 
     try {
-      await axios.post(`${API_BASE}/pre-approvals`, payload)
+      await axios.post(`${API_BASE}/pre-approvals`, payload, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        }
+      })
       setSubmitted(true)
     } catch (err) {
       console.error('Submission failed:', err)
@@ -84,7 +89,7 @@ export default function PreApproved() {
         <Header />
         <div className="max-w-2xl mx-auto px-4 py-24 text-center">
           <div className="bg-white p-10 rounded-2xl shadow">
-            <div className="text-5xl mb-4">✓</div>
+            <div className="text-5xl mb-4 text-green-600">✓</div>
             <h1 className="text-3xl font-bold mb-3">Application Submitted!</h1>
             <p className="text-slate-600">
               Thank you. Our financing team will review your information and contact you shortly.
