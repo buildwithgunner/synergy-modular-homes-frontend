@@ -60,8 +60,15 @@ export default function PreApproved() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitting(true)
+
+    // Formats array field properly for backend database ingestion
+    const payload = {
+      ...form,
+      proof_of_income: JSON.stringify(form.proof_of_income || [])
+    }
+
     try {
-      await axios.post(`${API_BASE}/pre-approvals`, form)
+      await axios.post(`${API_BASE}/pre-approvals`, payload)
       setSubmitted(true)
     } catch (err) {
       console.error('Submission failed:', err)
