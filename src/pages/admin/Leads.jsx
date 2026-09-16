@@ -6,7 +6,7 @@ export default function AdminLeads() {
   const [leads, setLeads] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [filter, setFilter] = useState('all') // all | contact | inquiry
+  const [filter, setFilter] = useState('all') // all | contact | inquiry | pre-approval
 
   const fetchLeads = async () => {
     try {
@@ -54,7 +54,6 @@ export default function AdminLeads() {
 
       if (!res.ok) throw new Error('Failed to update status')
 
-      // Refresh list
       await fetchLeads()
     } catch (err) {
       console.error(err)
@@ -75,9 +74,16 @@ export default function AdminLeads() {
   }
 
   const typeBadge = (type) => {
-    if (type === 'contact') {
+    if (type === 'pre-approval') {
       return (
         <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700">
+          Pre-Approval
+        </span>
+      )
+    }
+    if (type === 'contact') {
+      return (
+        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
           Contact
         </span>
       )
@@ -96,13 +102,13 @@ export default function AdminLeads() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Leads & Inquiries</h1>
           <p className="text-sm text-slate-500 mt-1">
-            Contact form messages and home inquiries
+            Contact form messages, home inquiries, and pre-approval submissions
           </p>
         </div>
 
         {/* Filter */}
-        <div className="flex gap-2">
-          {['all', 'contact', 'inquiry'].map((item) => (
+        <div className="flex flex-wrap gap-2">
+          {['all', 'inquiry', 'pre-approval', 'contact'].map((item) => (
             <button
               key={item}
               type="button"
@@ -113,7 +119,11 @@ export default function AdminLeads() {
                   : 'bg-white border text-slate-600 hover:bg-slate-50'
               }`}
             >
-              {item === 'all' ? 'All' : item.charAt(0).toUpperCase() + item.slice(1)}
+              {item === 'all'
+                ? 'All'
+                : item === 'pre-approval'
+                ? 'Pre-Approval'
+                : item.charAt(0).toUpperCase() + item.slice(1)}
             </button>
           ))}
         </div>
@@ -151,7 +161,7 @@ export default function AdminLeads() {
                     Home
                   </th>
                   <th className="text-left px-5 py-3.5 font-semibold text-slate-600">
-                    Message
+                    Message / Notes
                   </th>
                   <th className="text-left px-5 py-3.5 font-semibold text-slate-600">
                     Status
@@ -183,7 +193,7 @@ export default function AdminLeads() {
                     </td>
                     <td className="px-5 py-4">{typeBadge(lead.type)}</td>
                     <td className="px-5 py-4 text-slate-600">
-                      {lead.home?.title || (lead.home_id ? `#${lead.home_id}` : '—')}
+                      {lead.home?.title || (lead.home_id ? `#${lead.home_id}` : 'General Inquiry')}
                     </td>
                     <td className="px-5 py-4 text-slate-600 max-w-xs">
                       <p className="line-clamp-2">{lead.notes || '—'}</p>
@@ -206,7 +216,7 @@ export default function AdminLeads() {
                       <select
                         value={lead.status || 'new'}
                         onChange={(e) => updateStatus(lead.id, e.target.value)}
-                        className="border rounded-lg px-2 py-1.5 text-xs bg-white"
+                        className="border rounded-lg px-2 py-1.5 text-xs bg-white cursor-pointer"
                       >
                         <option value="new">New</option>
                         <option value="contacted">Contacted</option>
