@@ -8,7 +8,6 @@ export default function AdminDashboard() {
   const [user, setUser] = useState(null)
 
   useEffect(() => {
-    // Load logged-in user from localStorage
     const storedUser = localStorage.getItem('user')
     if (storedUser) {
       try {
@@ -41,6 +40,11 @@ export default function AdminDashboard() {
       name: 'Leads',
       path: '/admin/leads',
       icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+    },
+    {
+      name: 'Pre-Approvals', // <-- ADDED SIDEBAR MENU ITEM
+      path: '/admin/pre-approvals',
+      icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
     },
     {
       name: 'Users',

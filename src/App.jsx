@@ -40,6 +40,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminOverview from "./pages/admin/Overview";
 import AdminHomes from "./pages/admin/Homes";
 import AdminLeads from "./pages/admin/Leads";
+import AdminPreApprovals from "./pages/admin/AdminPreApprovals"; // <-- ADDED IMPORT
 import AdminUsers from "./pages/admin/Users";
 import AdminSettings from "./pages/admin/Settings";
 
@@ -60,7 +61,6 @@ function App() {
       <Route path="/homes/:id" element={<HomeDetail />} />
 
       {/* ===================== AUTH ===================== */}
-      {/* Redirect old paths to the correct user auth pages */}
       <Route path="/login" element={<Navigate to="/user/login" replace />} />
       <Route path="/signup" element={<Navigate to="/user/register" replace />} />
 
@@ -103,6 +103,7 @@ function App() {
         <Route path="dashboard" element={<AdminOverview />} />
         <Route path="homes" element={<AdminHomes />} />
         <Route path="leads" element={<AdminLeads />} />
+        <Route path="pre-approvals" element={<AdminPreApprovals />} /> {/* <-- ADDED ROUTE */}
         <Route path="users" element={<AdminUsers />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route index element={<Navigate to="dashboard" replace />} />

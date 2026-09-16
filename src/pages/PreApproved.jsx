@@ -60,47 +60,11 @@ export default function PreApproved() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitting(true)
-
-    // Build full formatted name and compile form answers into notes field
-    const fullName = `${form.first_name} ${form.middle_name ? form.middle_name + ' ' : ''}${form.last_name}`.trim()
-    const compiledNotes = `
---- PRE-APPROVAL APPLICATION DETAILS ---
-DOB: ${form.dob || 'N/A'}
-SSN: ${form.ssn || 'N/A'}
-Credit Score: ${form.credit_score || 'N/A'}
-Purchasing Method: ${form.purchasing_method || 'N/A'}
-Co-Applicant: ${form.co_applicant}
-Timeline: ${form.how_soon || 'N/A'}
-
-Address: ${form.address}, ${form.city}, ${form.state} ${form.zip}
-Years at Address: ${form.years_at_address || 'N/A'}
-Housing Situation: ${form.housing_situation || 'N/A'}
-Current Payment: $${form.rent_or_mortgage || '0'}
-
-Proof of Income: ${form.proof_of_income.length > 0 ? form.proof_of_income.join(', ') : 'None selected'}
-Income (Before Tax): $${form.income_before_tax || '0'} (${form.pay_frequency || 'N/A'})
-Overtime Amount: $${form.overtime_amount || '0'}
-
-Home Preferences: ${form.preferred_bedrooms ? form.preferred_bedrooms + ' Bed' : 'N/A'}, ${form.preferred_home_size || 'N/A'}
-Down Payment Available: $${form.down_payment || '0'}
-Monthly Budget: $${form.monthly_budget || '0'}
-Signature: ${form.signature}
-`.trim()
-
-    const payload = {
-      name: fullName,
-      email: form.email,
-      phone: form.cell_phone,
-      type: 'pre-approval',
-      notes: compiledNotes,
-      status: 'new',
-    }
-
     try {
-      await axios.post(`${API_BASE}/leads`, payload)
+      await axios.post(`${API_BASE}/pre-approvals`, form)
       setSubmitted(true)
     } catch (err) {
-      console.error('Pre-approval submit error:', err)
+      console.error('Submission failed:', err)
       alert('Failed to submit application. Please try again.')
     } finally {
       setSubmitting(false)
