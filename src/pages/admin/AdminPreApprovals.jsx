@@ -6,6 +6,7 @@ const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_U
 export default function AdminPreApprovals() {
   const [apps, setApps] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
   const [selectedApp, setSelectedApp] = useState(null)
 
   useEffect(() => {
@@ -13,19 +14,38 @@ export default function AdminPreApprovals() {
   }, [])
 
   const fetchPreApprovals = async () => {
+    setLoading(true)
+    setError(null)
     try {
       const token = localStorage.getItem('token') || localStorage.getItem('admin_token')
       const res = await axios.get(`${API_BASE}/pre-approvals`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 
+          Authorization: token ? `Bearer ${token}` : '',
+          Accept: 'application/json'
+        },
       })
-      // Handle both standard arrays and paginated data responses
+      
       const data = Array.isArray(res.data) ? res.data : (res.data.data || [])
       setApps(data)
     } catch (err) {
       console.error('Error fetching pre-approvals:', err)
+      setError(err.response?.data?.message || 'Failed to fetch application records from server.')
     } finally {
       setLoading(false)
     }
+  }
+
+  // Safe helper to render proof of income regardless of string or array storage format
+  const formatProofOfIncome = (data) => {
+    if (!data) return 'None selected'
+    if (Array.isArray(data)) return data.join(', ')
+    try {
+      const parsed = JSON.parse(data)
+      if (Array.isArray(parsed)) return parsed.join(', ')
+    } catch {
+      // Return raw string if parsing fails
+    }
+    return String(data)
   }
 
   return (
@@ -42,6 +62,12 @@ export default function AdminPreApprovals() {
           Refresh Data
         </button>
       </div>
+
+      {error && (
+        <div className="bg-red-50 text-red-700 p-4 rounded-xl border border-red-200 mb-6 text-sm">
+          {error}
+        </div>
+      )}
 
       {loading ? (
         <div className="p-12 text-center text-slate-500">Loading pre-approvals...</div>
@@ -154,9 +180,7 @@ export default function AdminPreApprovals() {
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl text-sm">
                 <div className="col-span-2 sm:col-span-3">
                   <span className="block text-xs text-slate-400">Proof of Income Provided:</span>
-                  {Array.isArray(selectedApp.proof_of_income) 
-                    ? selectedApp.proof_of_income.join(', ') 
-                    : (selectedApp.proof_of_income || 'None selected')}
+                  {formatProofOfIncome(selectedApp.proof_of_income)}
                 </div>
                 <div><span className="block text-xs text-slate-400">Income (Before Tax):</span> ${selectedApp.income_before_tax || '0'}</div>
                 <div><span className="block text-xs text-slate-400">Pay Frequency:</span> <span className="capitalize">{selectedApp.pay_frequency || 'N/A'}</span></div>

@@ -53,7 +53,7 @@ export default function PreApproved() {
         }
       })
     } else {
-      setForm({ ...form, [name]: value })
+      setForm((prev) => ({ ...prev, [name]: value }))
     }
   }
 
@@ -61,10 +61,10 @@ export default function PreApproved() {
     e.preventDefault()
     setSubmitting(true)
 
-    // Formats array field properly for backend database ingestion
+    // Pass proof_of_income as an array directly; Axios handles JSON serialization
     const payload = {
       ...form,
-      proof_of_income: JSON.stringify(form.proof_of_income || [])
+      proof_of_income: form.proof_of_income || [],
     }
 
     try {
@@ -72,12 +72,12 @@ export default function PreApproved() {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-        }
+        },
       })
       setSubmitted(true)
     } catch (err) {
       console.error('Submission failed:', err)
-      alert('Failed to submit application. Please try again.')
+      alert(err.response?.data?.message || 'Failed to submit application. Please check your inputs.')
     } finally {
       setSubmitting(false)
     }
@@ -113,7 +113,6 @@ export default function PreApproved() {
         </div>
 
         <form onSubmit={handleSubmit} className="bg-white rounded-2xl shadow-md p-6 sm:p-10 space-y-10">
-
           {/* Personal Information */}
           <div>
             <h2 className="text-xl font-bold mb-5 border-b pb-2">Personal Information</h2>
@@ -390,7 +389,7 @@ export default function PreApproved() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition text-lg"
+            className="w-full bg-blue-600 text-white font-bold py-4 rounded-xl hover:bg-blue-700 transition text-lg disabled:opacity-50"
           >
             {submitting ? 'Submitting Application...' : 'Submit Pre-Approval Application'}
           </button>
