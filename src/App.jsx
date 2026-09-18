@@ -40,7 +40,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminOverview from "./pages/admin/Overview";
 import AdminHomes from "./pages/admin/Homes";
 import AdminLeads from "./pages/admin/Leads";
-import AdminAppointments from "./pages/admin/AppointmentDetails";
+
 import AdminPreApprovals from "./pages/admin/AdminPreApprovals";
 import AppointmentDetails from "./pages/admin/AppointmentDetails";
 import AdminUsers from "./pages/admin/Users";
