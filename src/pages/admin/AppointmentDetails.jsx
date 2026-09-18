@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import { useParams, Link } from 'react-router-dom';
+import api from '../../api/axios'; // Make sure this path correctly points to your api/axios.js file
 
 const AppointmentDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [appointment, setAppointment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -12,19 +11,21 @@ const AppointmentDetails = () => {
   useEffect(() => {
     const fetchDetails = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(`https://api.synergymodularhomes.com/api/admin/appointments/${id}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        setLoading(true);
+        // Using central 'api' instance ensures interceptor attaches the token automatically
+        const res = await api.get(`/admin/appointments/${id}`);
         setAppointment(res.data?.data || res.data);
       } catch (err) {
+        console.error('Failed to load appointment details:', err);
         setError('Failed to load appointment details.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchDetails();
+    if (id) {
+      fetchDetails();
+    }
   }, [id]);
 
   if (loading) return <div className="p-8 text-white">Loading details...</div>;

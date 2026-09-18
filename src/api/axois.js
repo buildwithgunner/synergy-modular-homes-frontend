@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api',
+  baseURL: import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'https://api.synergymodularhomes.com/api',
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
@@ -28,10 +28,8 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      // Clear tokens and redirect to login if session expires
       localStorage.removeItem('token');
       localStorage.removeItem('admin_token');
-      // Optional: window.location.href = '/user/login';
     }
     return Promise.reject(error);
   }
