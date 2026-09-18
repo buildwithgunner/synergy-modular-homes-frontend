@@ -42,7 +42,7 @@ export default function AdminDashboard() {
       icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
     },
     {
-      name: 'Pre-Approvals', // <-- ADDED SIDEBAR MENU ITEM
+      name: 'Pre-Approvals',
       path: '/admin/pre-approvals',
       icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z',
     },
@@ -58,7 +58,7 @@ export default function AdminDashboard() {
     },
   ]
 
-  const isActive = (path) => location.pathname === path
+  const isActive = (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
 
   const displayName = user?.name || 'Admin'
   const displayEmail = user?.email || 'admin@mobilehomes.com'
@@ -135,7 +135,7 @@ export default function AdminDashboard() {
             ))}
           </nav>
 
-          {/* Bottom */}
+          {/* Bottom Actions */}
           <div className="p-4 border-t border-white/10 space-y-1">
             <Link
               to="/"
@@ -160,7 +160,7 @@ export default function AdminDashboard() {
         </div>
       </aside>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="relative flex-1 flex flex-col min-w-0 z-10">
         {/* Top Header */}
         <header className="bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-30 shadow-sm">
