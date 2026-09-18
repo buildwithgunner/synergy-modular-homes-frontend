@@ -12,7 +12,10 @@ const Appointments = () => {
       try {
         setLoading(true);
         const res = await api.get('/admin/appointments');
-        setAppointments(Array.isArray(res.data) ? res.data : res.data?.data || []);
+        
+        // Unpacks paginated response ($appointments = Lead::latest()->paginate(15))
+        const list = res.data?.data?.data || res.data?.data || res.data || [];
+        setAppointments(Array.isArray(list) ? list : []);
       } catch (err) {
         console.error('Error fetching appointments:', err);
         setError('Failed to load appointments list.');
