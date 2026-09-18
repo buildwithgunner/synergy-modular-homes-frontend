@@ -16,37 +16,47 @@ export default function Overview() {
       try {
         setLoading(true)
 
-        // Fetch homes & leads concurrently
-        const [homesRes, leadsRes] = await Promise.all([
+        // Fetch concurrently using Promise.allSettled to prevent single-endpoint blockage
+        const [homesRes, leadsRes, usersRes] = await Promise.allSettled([
           api.get('/homes'),
-          api.get('/leads')
+          api.get('/leads'),
+          api.get('/users'),
         ])
 
-        const homes = homesRes.data
-        const leads = leadsRes.data
+        // Safely extract arrays from Laravel's response wrapper: res.data.data.data OR res.data.data OR res.data
+        const extractArray = (res) => {
+          if (res.status !== 'fulfilled') return []
+          const raw = res.value.data
+          if (Array.isArray(raw)) return raw
+          if (Array.isArray(raw?.data)) return raw.data
+          if (Array.isArray(raw?.data?.data)) return raw.data.data
+          return []
+        }
+
+        const homes = extractArray(homesRes)
+        const leads = extractArray(leadsRes)
+        const users = extractArray(usersRes)
 
         // Calculate stats
-        const newLeadsCount = Array.isArray(leads)
-          ? leads.filter((l) => (l.status || '').toLowerCase() === 'new').length
-          : 0
+        const newLeadsCount = leads.filter(
+          (l) => (l.status || 'new').toLowerCase() === 'new'
+        ).length
 
         setStats({
-          totalHomes: Array.isArray(homes) ? homes.length : 0,
+          totalHomes: homes.length,
           newLeads: newLeadsCount,
-          appointments: 0,
-          users: 0,
+          appointments: leads.length, // Total booked leads/appointments
+          users: users.length,
         })
 
-        // Recent leads (latest 5)
-        if (Array.isArray(leads)) {
-          const sorted = [...leads]
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 5)
+        // Sort and select 5 most recent leads
+        const sortedLeads = [...leads]
+          .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+          .slice(0, 5)
 
-          setRecentLeads(sorted)
-        }
+        setRecentLeads(sortedLeads)
       } catch (err) {
-        console.error('Failed to load overview data', err)
+        console.error('Failed to load overview data:', err)
       } finally {
         setLoading(false)
       }
@@ -58,10 +68,12 @@ export default function Overview() {
   const formatDate = (dateString) => {
     if (!dateString) return '—'
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-    })
+    return isNaN(date.getTime())
+      ? '—'
+      : date.toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+        })
   }
 
   const getStatusBadge = (status) => {
@@ -92,7 +104,7 @@ export default function Overview() {
     <div>
       <h1 className="text-2xl font-bold text-slate-900 mb-6">Admin Overview</h1>
 
-      {/* Stats */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <div className="bg-white rounded-2xl p-5 border shadow-sm">
           <p className="text-sm text-slate-500">Total Homes</p>
@@ -112,7 +124,7 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* Recent Leads */}
+      {/* Recent Leads Table */}
       <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b">
           <h2 className="font-bold text-slate-900">Recent Leads</h2>
@@ -123,19 +135,19 @@ export default function Overview() {
             No leads yet.
           </div>
         ) : (
-          <table className="w-full text-sm">
+          <table className="w-full text-sm text-left">
             <thead className="bg-slate-50 border-b">
               <tr>
-                <th className="text-left px-5 py-3 font-semibold text-slate-600">Name</th>
-                <th className="text-left px-5 py-3 font-semibold text-slate-600">Home</th>
-                <th className="text-left px-5 py-3 font-semibold text-slate-600">Date</th>
-                <th className="text-left px-5 py-3 font-semibold text-slate-600">Status</th>
+                <th className="px-5 py-3 font-semibold text-slate-600">Name</th>
+                <th className="px-5 py-3 font-semibold text-slate-600">Home</th>
+                <th className="px-5 py-3 font-semibold text-slate-600">Date</th>
+                <th className="px-5 py-3 font-semibold text-slate-600">Status</th>
               </tr>
             </thead>
             <tbody>
               {recentLeads.map((lead) => (
                 <tr key={lead.id} className="border-b last:border-0 hover:bg-slate-50">
-                  <td className="px-5 py-3.5 font-medium">{lead.name || '—'}</td>
+                  <td className="px-5 py-3.5 font-medium text-slate-900">{lead.name || '—'}</td>
                   <td className="px-5 py-3.5 text-slate-600">
                     {lead.home?.title || (lead.home_id ? `Home #${lead.home_id}` : '—')}
                   </td>
