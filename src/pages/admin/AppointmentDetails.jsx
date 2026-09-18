@@ -16,7 +16,7 @@ const AppointmentDetails = () => {
         const res = await axios.get(`https://api.synergymodularhomes.com/api/admin/appointments/${id}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setAppointment(res.data.data);
+        setAppointment(res.data?.data || res.data);
       } catch (err) {
         setError('Failed to load appointment details.');
       } finally {
@@ -38,13 +38,13 @@ const AppointmentDetails = () => {
         {/* Top Bar */}
         <div className="flex justify-between items-center border-b border-slate-800 pb-4">
           <div>
-            <Link to="/admin/dashboard" className="text-sm text-amber-500 hover:underline">
-              &larr; Back to Dashboard
+            <Link to="/admin/appointments" className="text-sm text-amber-500 hover:underline">
+              &larr; Back to Appointments
             </Link>
-            <h1 className="text-2xl font-bold mt-1">Appointment Record #{appointment.id}</h1>
+            <h1 className="text-2xl font-bold mt-1">Appointment Record #{appointment?.id || id}</h1>
           </div>
           <span className="px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20 uppercase">
-            {appointment.status || 'Pending'}
+            {appointment?.status || 'Pending'}
           </span>
         </div>
 
@@ -58,15 +58,15 @@ const AppointmentDetails = () => {
             </h2>
             <div>
               <p className="text-xs text-slate-400">Full Name</p>
-              <p className="font-medium text-slate-100">{appointment.name || 'N/A'}</p>
+              <p className="font-medium text-slate-100">{appointment?.name || appointment?.user?.name || 'N/A'}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400">Email Address</p>
-              <p className="font-medium text-slate-100">{appointment.email || 'N/A'}</p>
+              <p className="font-medium text-slate-100">{appointment?.email || appointment?.user?.email || 'N/A'}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400">Phone Number</p>
-              <p className="font-medium text-slate-100">{appointment.phone || 'N/A'}</p>
+              <p className="font-medium text-slate-100">{appointment?.phone || appointment?.user?.phone || 'N/A'}</p>
             </div>
           </div>
 
@@ -77,16 +77,16 @@ const AppointmentDetails = () => {
             </h2>
             <div>
               <p className="text-xs text-slate-400">Preferred Date</p>
-              <p className="font-medium text-slate-100">{appointment.preferred_date || 'N/A'}</p>
+              <p className="font-medium text-slate-100">{appointment?.preferred_date || appointment?.date || 'N/A'}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400">Preferred Time Slot</p>
-              <p className="font-medium text-slate-100">{appointment.preferred_time || 'N/A'}</p>
+              <p className="font-medium text-slate-100">{appointment?.preferred_time || appointment?.startTime || appointment?.time || 'N/A'}</p>
             </div>
             <div>
               <p className="text-xs text-slate-400">Submission Date</p>
               <p className="font-medium text-slate-100">
-                {new Date(appointment.created_at).toLocaleString()}
+                {appointment?.created_at ? new Date(appointment.created_at).toLocaleString() : 'N/A'}
               </p>
             </div>
           </div>
@@ -98,7 +98,7 @@ const AppointmentDetails = () => {
             Client Message & Requirements
           </h2>
           <p className="text-sm text-slate-300 whitespace-pre-wrap leading-relaxed">
-            {appointment.notes || appointment.message || 'No additional notes provided by client.'}
+            {appointment?.notes || appointment?.message || 'No additional notes provided by client.'}
           </p>
         </div>
 
