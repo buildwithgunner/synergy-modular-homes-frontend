@@ -40,7 +40,8 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminOverview from "./pages/admin/Overview";
 import AdminHomes from "./pages/admin/Homes";
 import AdminLeads from "./pages/admin/Leads";
-import AdminPreApprovals from "./pages/admin/AdminPreApprovals"; // <-- ADDED IMPORT
+import AdminPreApprovals from "./pages/admin/AdminPreApprovals";
+import AppointmentDetails from "./pages/admin/AppointmentDetails"; // <-- ADDED IMPORT
 import AdminUsers from "./pages/admin/Users";
 import AdminSettings from "./pages/admin/Settings";
 
@@ -103,7 +104,8 @@ function App() {
         <Route path="dashboard" element={<AdminOverview />} />
         <Route path="homes" element={<AdminHomes />} />
         <Route path="leads" element={<AdminLeads />} />
-        <Route path="pre-approvals" element={<AdminPreApprovals />} /> {/* <-- ADDED ROUTE */}
+        <Route path="pre-approvals" element={<AdminPreApprovals />} />
+        <Route path="appointments/:id" element={<AppointmentDetails />} /> {/* <-- ADDED ROUTE */}
         <Route path="users" element={<AdminUsers />} />
         <Route path="settings" element={<AdminSettings />} />
         <Route index element={<Navigate to="dashboard" replace />} />
