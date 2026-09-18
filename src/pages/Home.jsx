@@ -15,6 +15,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedHome, setSelectedHome] = useState(null)
+  const [videoError, setVideoError] = useState(false)
 
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [redirectPath, setRedirectPath] = useState('/pre-approved')
@@ -64,65 +65,126 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F7F4] text-slate-800">
+    <div className="min-h-screen bg-[#F8F7F4] text-slate-800 font-sans selection:bg-[#B87333] selection:text-white">
       <Header />
 
-      {/* 1. HERO SECTION WITH PARALLAX BACKGROUND */}
-      <section 
-        className="relative text-white min-h-[720px] flex items-center justify-center px-4 py-28 bg-fixed bg-cover bg-center"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600&q=80')`,
-        }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0B1C33]/85 via-[#0B1C33]/70 to-[#0B1C33]/90" />
+      {/* 1. HERO SECTION WITH VIDEO BACKGROUND & FALLBACK */}
+      <section className="relative text-white min-h-[85vh] flex items-center justify-center px-4 py-24 overflow-hidden">
+        {/* Background Video with Static Fallback Image */}
+        <div className="absolute inset-0 z-0 bg-slate-900">
+          {!videoError ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              onError={() => setVideoError(true)}
+              poster="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600&q=80"
+              className="w-full h-full object-cover scale-105"
+            >
+              <source
+                src="https://videos.pexels.com/video-files/3205634/3205634-sd_640_360_25fps.mp4"
+                type="video/mp4"
+              />
+            </video>
+          ) : (
+            <img
+              src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600&q=80"
+              alt="Modular Home Hero"
+              className="w-full h-full object-cover"
+            />
+          )}
+          {/* Dark Overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C33] via-[#0B1C33]/70 to-[#0B1C33]/80" />
+        </div>
 
-        <div className="relative max-w-4xl mx-auto text-center z-10">
-          <span className="inline-block bg-[#B87333] text-white text-xs font-semibold px-5 py-1.5 rounded-full uppercase tracking-[0.2em] mb-6 shadow-md">
-            Modular & Mobile Living
-          </span>
+        {/* Hero Content */}
+        <div className="relative max-w-5xl mx-auto text-center z-10 pt-10">
+          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold px-4 py-2 rounded-full mb-6 shadow-xl">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+            <span className="text-slate-100 uppercase tracking-widest text-[11px]">Next-Gen Modular Living</span>
+          </div>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.15] mb-6">
-            High-Quality Modular Homes<br />
-            Ready for Move-In
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] mb-6 drop-shadow-sm">
+            Modern Modular Homes,<br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-[#B87333]">
+              Delivered Anywhere.
+            </span>
           </h1>
 
-          <p className="text-slate-200 text-lg max-w-2xl mx-auto mb-10 leading-relaxed">
-            Explore single-wides, double-wides, tiny homes, and workforce housing with flexible financing and full support from selection to delivery.
+          <p className="text-slate-200 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-light">
+            Explore single-wides, double-wides, tiny homes, and workforce setups. Factory-crafted precision meets hassle-free installation.
           </p>
 
+          {/* Search Bar */}
           <form
             onSubmit={handleHeroSearch}
-            className="max-w-xl mx-auto flex flex-col sm:flex-row items-center bg-white/95 backdrop-blur-md rounded-2xl p-2 shadow-2xl gap-2 border border-white/20"
+            className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center bg-white/95 backdrop-blur-xl rounded-2xl p-2 shadow-2xl gap-2 border border-white/30 transition-all focus-within:ring-2 focus-within:ring-[#B87333]"
           >
-            <input
-              type="text"
-              placeholder="Search by city, zip code, or model..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-5 py-3.5 text-slate-900 focus:outline-none rounded-xl text-sm placeholder:text-slate-400 bg-transparent"
-            />
+            <div className="flex items-center w-full px-3">
+              <svg className="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search city, zip code, or floor plan..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-3.5 text-slate-900 focus:outline-none rounded-xl text-sm placeholder:text-slate-400 bg-transparent"
+              />
+            </div>
             <button
               type="submit"
-              className="w-full sm:w-auto bg-[#0B1C33] hover:bg-[#B87333] text-white px-8 py-3.5 rounded-xl font-semibold transition-colors shrink-0 shadow-md"
+              className="w-full sm:w-auto bg-[#0B1C33] hover:bg-[#B87333] text-white px-8 py-3.5 rounded-xl font-bold transition-all duration-300 shrink-0 shadow-lg"
             >
-              Search Homes
+              Search
             </button>
           </form>
+
+          {/* Quick Stats Pill */}
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-300 font-medium">
+            <span className="flex items-center gap-1.5"><svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg> 4.9/5 Homeowner Rating</span>
+            <span>•</span>
+            <span>Direct Factory Pricing</span>
+            <span>•</span>
+            <span>Turnkey Site Setup</span>
+          </div>
+        </div>
+
+        {/* Floating Media Cards (Desktop Only) */}
+        <div className="hidden lg:block absolute bottom-8 left-8 z-10 bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl shadow-2xl max-w-xs">
+          <div className="flex items-center gap-3">
+            <img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=150&q=80" alt="Delivery preview" className="w-14 h-14 rounded-xl object-cover" />
+            <div>
+              <p className="text-xs font-bold text-white">Turnkey Delivery</p>
+              <p className="text-[11px] text-slate-300">We ship direct to your plot</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="hidden lg:block absolute bottom-8 right-8 z-10 bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl shadow-2xl max-w-xs">
+          <div className="flex items-center gap-3">
+            <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=150&q=80" alt="Interior preview" className="w-14 h-14 rounded-xl object-cover" />
+            <div>
+              <p className="text-xs font-bold text-white">Custom Interiors</p>
+              <p className="text-[11px] text-slate-300">Choose luxury finishes</p>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* 2. STATS SECTION */}
-      <section className="bg-white border-b border-slate-100 shadow-sm relative z-10">
-        <div className="max-w-6xl mx-auto px-4 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+      {/* 2. STATS BAR */}
+      <section className="bg-white border-b border-slate-200/80 shadow-sm relative z-10">
+        <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           {[
-            { value: '150+', label: 'Homes Available' },
-            { value: '12', label: 'Years Experience' },
-            { value: '980+', label: 'Happy Families' },
-            { value: '24h', label: 'Pre-Approval' },
+            { value: '150+', label: 'Homes Ready to Ship' },
+            { value: '12+', label: 'Years Industry Expertise' },
+            { value: '980+', label: 'Delivered Homes' },
+            { value: '24h', label: 'Fast Pre-Approval' },
           ].map((stat) => (
-            <div key={stat.label}>
-              <p className="text-3xl font-black text-[#0B1C33]">{stat.value}</p>
-              <p className="text-sm text-slate-500 mt-1.5">{stat.label}</p>
+            <div key={stat.label} className="p-2">
+              <p className="text-3xl sm:text-4xl font-black text-[#0B1C33] tracking-tight">{stat.value}</p>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">{stat.label}</p>
             </div>
           ))}
         </div>
@@ -132,15 +194,15 @@ export default function Home() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
           <div>
-            <span className="text-[#B87333] text-xs font-bold uppercase tracking-wider block mb-1">Live Inventory</span>
-            <h2 className="text-3xl font-extrabold text-[#0B1C33]">Featured Homes</h2>
-            <p className="text-slate-500 mt-1">Hand-picked modular homes ready for delivery</p>
+            <span className="text-[#B87333] text-xs font-bold uppercase tracking-widest block mb-1">Live Inventory</span>
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1C33]">Featured Homes</h2>
+            <p className="text-slate-500 mt-1 text-sm sm:text-base">Hand-picked modular homes ready for delivery</p>
           </div>
           <Link
             to="/homes"
-            className="text-sm font-semibold text-[#B87333] hover:text-[#0B1C33] transition"
+            className="inline-flex items-center gap-1 text-sm font-bold text-[#B87333] hover:text-[#0B1C33] transition-colors"
           >
-            View All Homes →
+            View All Homes <span className="text-lg">→</span>
           </Link>
         </div>
 
@@ -161,7 +223,7 @@ export default function Home() {
             {featuredHomes.map((home) => (
               <div
                 key={home.id}
-                className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
+                className="bg-white border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
               >
                 <div className="relative h-64 overflow-hidden bg-slate-900">
                   <img
@@ -212,52 +274,55 @@ export default function Home() {
         )}
       </section>
 
-      {/* 4. WHY CHOOSE US (FIXED SHOWCASE IMAGE) */}
-      <section className="py-24 bg-white border-y border-slate-100">
+      {/* 4. WHY CHOOSE US */}
+      <section className="py-24 bg-white border-y border-slate-200/60">
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <span className="text-[#B87333] text-xs font-bold uppercase tracking-wider block mb-2">Precision Built</span>
-              <h2 className="text-3xl font-extrabold text-[#0B1C33] mb-6">
+              <span className="text-[#B87333] text-xs font-bold uppercase tracking-wider block mb-2">Precision Engineering</span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1C33] mb-6 leading-tight">
                 Why Choose Synergy Modular Living?
               </h2>
               <p className="text-slate-600 mb-8 leading-relaxed">
-                We specialize in high-quality modular and manufactured homes.
-                From site prep to delivery, installation, and financing — we guide you through every step of the journey.
+                We specialize in factory-built modular and manufactured housing built to strict federal HUD standards. Enjoy up to 40% faster construction timelines without sacrificing design quality.
               </p>
 
               <div className="space-y-6">
                 {[
-                  { title: 'Wide Selection', desc: 'Single-wides, double-wides, tiny homes and workforce housing.' },
-                  { title: 'Fast Pre-Approval', desc: 'Get approved in as little as 24 hours with multiple lender options.' },
-                  { title: 'Full Turnkey Setup', desc: 'We handle permits, foundation matching, delivery, and utility hooks.' },
+                  { title: 'Wide Floor Plan Selection', desc: 'Single-wides, double-wides, tiny homes, and workforce housing.' },
+                  { title: 'Flexible Financing & Fast Approval', desc: 'Get pre-approved in as little as 24 hours with custom loan packages.' },
+                  { title: 'Full Turnkey Setup', desc: 'We coordinate permits, foundations, utility hooks, and direct delivery.' },
                 ].map((item) => (
                   <div key={item.title} className="flex gap-4">
                     <div className="w-10 h-10 rounded-xl bg-[#B87333]/10 text-[#B87333] flex items-center justify-center shrink-0">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
                     <div>
                       <h3 className="font-bold text-[#0B1C33]">{item.title}</h3>
-                      <p className="text-sm text-slate-600">{item.desc}</p>
+                      <p className="text-sm text-slate-500 mt-0.5">{item.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Reliable Image Showcase with Hover Zoom */}
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl h-[420px] bg-slate-900 border border-slate-100 group">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl h-[460px] bg-slate-900 border border-slate-100 group">
               <img
                 src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"
                 alt="Modern manufactured home setup"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C33]/80 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6 bg-white/95 backdrop-blur-md p-5 rounded-2xl shadow-xl">
-                <p className="text-3xl font-black text-[#0B1C33]">12+</p>
-                <p className="text-sm font-semibold text-slate-600">Years of Excellence</p>
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C33]/90 via-transparent to-transparent" />
+              <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-md p-6 rounded-2xl shadow-xl border border-white/20 flex justify-between items-center">
+                <div>
+                  <p className="text-2xl font-black text-[#0B1C33]">12+ Years</p>
+                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Building Better Homes</p>
+                </div>
+                <Link to="/about" className="text-xs font-bold text-[#B87333] hover:underline">
+                  Learn Our Story →
+                </Link>
               </div>
             </div>
           </div>
@@ -267,7 +332,7 @@ export default function Home() {
       {/* 5. CATEGORIES SECTION */}
       <BrowseCategories />
 
-      {/* 6. PARALLAX LOCATIONS SECTION */}
+      {/* 6. SHOWROOM LOCATIONS */}
       <section 
         className="relative text-white py-28 bg-fixed bg-cover bg-center"
         style={{
@@ -277,45 +342,55 @@ export default function Home() {
         <div className="absolute inset-0 bg-[#0B1C33]/90 backdrop-blur-xs" />
         <div className="max-w-6xl mx-auto px-4 relative z-10">
           <div className="text-center mb-16">
-            <span className="text-[#C9A66B] text-xs font-bold uppercase tracking-widest block mb-2">Showrooms & Sales Lots</span>
-            <h2 className="text-3xl font-extrabold mb-3">Visit Our Locations</h2>
-            <p className="text-slate-300 max-w-xl mx-auto">
-              Walk through featured floor models in Texas or California.
+            <span className="text-[#C9A66B] text-xs font-bold uppercase tracking-widest block mb-2">Experience Models Firsthand</span>
+            <h2 className="text-3xl sm:text-4xl font-black mb-3">Visit Our Showrooms</h2>
+            <p className="text-slate-300 max-w-xl mx-auto text-sm sm:text-base">
+              Tour fully staged floor models in Texas or California.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white/10 backdrop-blur-md border border-white/15 rounded-2xl p-8 hover:bg-white/20 transition duration-300">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-full bg-[#B87333] flex items-center justify-center text-white font-bold text-sm shadow-md">TX</div>
-                <h3 className="text-xl font-bold">Tyler, Texas</h3>
+            <div className="bg-white/10 backdrop-blur-lg border border-white/15 rounded-3xl p-8 hover:border-white/30 transition duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-[#B87333] flex items-center justify-center text-white font-black text-sm shadow-lg">TX</div>
+                  <div>
+                    <h3 className="text-2xl font-bold">Tyler, Texas</h3>
+                    <p className="text-xs text-slate-300">Sales Lot & Model Park</p>
+                  </div>
+                </div>
+                <p className="text-slate-200 leading-relaxed mb-8">
+                  2606 E Commerce St<br />Tyler, TX 75702
+                </p>
               </div>
-              <p className="text-slate-200 leading-relaxed mb-6">
-                2606 E Commerce St<br />Tyler, TX 75702
-              </p>
               <a
                 href="https://maps.google.com/?q=2606+E+Commerce+St,+Tyler,+TX+75702"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-[#C9A66B] hover:text-white font-semibold text-sm transition"
+                className="inline-flex items-center gap-2 text-[#C9A66B] hover:text-white font-bold text-sm transition"
               >
                 Get Directions →
               </a>
             </div>
 
-            <div className="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-8 hover:bg-white/20 transition duration-300">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-full bg-[#B87333] flex items-center justify-center text-white font-bold text-sm shadow-md">CA</div>
-                <h3 className="text-xl font-bold">Grass Valley, California</h3>
+            <div className="bg-white/10 backdrop-blur-lg border border-white/15 rounded-3xl p-8 hover:border-white/30 transition duration-300 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 rounded-2xl bg-[#B87333] flex items-center justify-center text-white font-black text-sm shadow-lg">CA</div>
+                  <div>
+                    <h3 className="text-2xl font-bold">Grass Valley, California</h3>
+                    <p className="text-xs text-slate-300">Sales Lot & Model Park</p>
+                  </div>
+                </div>
+                <p className="text-slate-200 leading-relaxed mb-8">
+                  11534 Country View Way<br />Grass Valley, CA 95945
+                </p>
               </div>
-              <p className="text-slate-200 leading-relaxed mb-6">
-                11534 Country View Way<br />Grass Valley, CA 95945
-              </p>
               <a
                 href="https://maps.google.com/?q=11534+Country+View+Way,+Grass+Valley,+CA+95945"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-[#C9A66B] hover:text-white font-semibold text-sm transition"
+                className="inline-flex items-center gap-2 text-[#C9A66B] hover:text-white font-bold text-sm transition"
               >
                 Get Directions →
               </a>
@@ -324,35 +399,71 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7. PARALLAX CALL TO ACTION SECTION */}
-      <section 
-        className="relative text-white py-24 bg-fixed bg-cover bg-center"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1600&q=80')`,
-        }}
-      >
-        <div className="absolute inset-0 bg-[#B87333]/90" />
-        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-          <h2 className="text-3xl font-extrabold mb-4">Ready to Find Your Modular Home?</h2>
-          <p className="text-white/90 mb-10 max-w-xl mx-auto text-lg">
-            Get pre-approved today or book a private consultation with our team.
+      {/* 7. CALL TO ACTION SECTION */}
+      <section className="relative bg-[#0B1C33] text-white py-20 px-4 overflow-hidden">
+        <div className="max-w-4xl mx-auto text-center relative z-10">
+          <h2 className="text-3xl sm:text-5xl font-black mb-6">Ready to Find Your Modular Home?</h2>
+          <p className="text-slate-300 mb-10 max-w-xl mx-auto text-base sm:text-lg">
+            Apply online for pre-approval or schedule a walk-through appointment with one of our modular home specialists.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
               onClick={() => handleProtectedClick('/pre-approved')}
-              className="bg-white text-[#0B1C33] font-bold px-8 py-3.5 rounded-xl hover:bg-slate-100 transition shadow-xl"
+              className="bg-[#B87333] hover:bg-amber-600 text-white font-bold px-8 py-4 rounded-xl transition shadow-xl"
             >
-              Get Pre-Approved
+              Get Pre-Approved Fast
             </button>
             <button
               onClick={() => handleProtectedClick('/book-appointment')}
-              className="bg-[#0B1C33] text-white font-bold px-8 py-3.5 rounded-xl hover:bg-[#162a47] transition border border-white/20 shadow-xl"
+              className="bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-4 rounded-xl border border-white/20 transition shadow-xl"
             >
-              Book Appointment
+              Book Showroom Visit
             </button>
           </div>
         </div>
       </section>
+
+      {/* 8. FOOTER */}
+      <footer className="bg-[#071222] text-slate-400 border-t border-slate-800 text-sm">
+        <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+          <div className="lg:col-span-2 space-y-4">
+            <span className="text-2xl font-black text-white tracking-tight">SYNERGY HOMES</span>
+            <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
+              Providing modern modular and manufactured housing options nationwide with end-to-end site prep, financing, and delivery.
+            </p>
+            <p className="text-xs text-slate-500 pt-2">© {new Date().getFullYear()} Synergy Modular Living. All rights reserved.</p>
+          </div>
+
+          <div>
+            <h4 className="text-white font-bold text-sm mb-4">Quick Links</h4>
+            <ul className="space-y-2.5">
+              <li><Link to="/homes" className="hover:text-white transition">All Models</Link></li>
+              <li><Link to="/categories" className="hover:text-white transition">Categories</Link></li>
+              <li><Link to="/pre-approved" className="hover:text-white transition">Financing</Link></li>
+              <li><Link to="/about" className="hover:text-white transition">About Us</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-bold text-sm mb-4">Categories</h4>
+            <ul className="space-y-2.5">
+              <li><Link to="/homes?type=single-wide" className="hover:text-white transition">Single-Wides</Link></li>
+              <li><Link to="/homes?type=double-wide" className="hover:text-white transition">Double-Wides</Link></li>
+              <li><Link to="/homes?type=tiny-home" className="hover:text-white transition">Tiny Homes</Link></li>
+              <li><Link to="/homes?type=workforce" className="hover:text-white transition">Workforce Housing</Link></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-white font-bold text-sm mb-4">Contact & Support</h4>
+            <ul className="space-y-2.5 text-xs">
+              <li>Tyler, TX • Grass Valley, CA</li>
+              <li>Support: support@synergyhomes.com</li>
+              <li>Mon - Sat: 8:00 AM - 6:00 PM</li>
+            </ul>
+          </div>
+        </div>
+      </footer>
 
       {/* MODALS */}
       <InquiryModal
