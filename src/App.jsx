@@ -27,7 +27,7 @@ import UserDashboard from "./pages/user/Dashboard";
 import Overview from "./pages/user/Overview";
 import Inquiries from "./pages/user/Inquiries";
 import SavedHomes from "./pages/user/SavedHomes";
-import Appointments from "./pages/user/Appointments";
+import UserAppointments from "./pages/user/Appointments";
 import PreApproval from "./pages/user/PreApproval";
 import Documents from "./pages/user/Documents";
 import Profile from "./pages/user/Profile";
@@ -40,7 +40,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminOverview from "./pages/admin/Overview";
 import AdminHomes from "./pages/admin/Homes";
 import AdminLeads from "./pages/admin/Leads";
-
+import AdminAppointments from "./pages/admin/Appointments";
 import AdminPreApprovals from "./pages/admin/AdminPreApprovals";
 import AppointmentDetails from "./pages/admin/AppointmentDetails";
 import AdminUsers from "./pages/admin/Users";
@@ -85,7 +85,7 @@ function App() {
         <Route path="homes" element={<BrowseHomes />} />
         <Route path="homes/:id" element={<UserHomeDetail />} />
         <Route path="saved" element={<SavedHomes />} />
-        <Route path="appointments" element={<Appointments />} />
+        <Route path="appointments" element={<UserAppointments />} />
         <Route path="pre-approval" element={<PreApproval />} />
         <Route path="documents" element={<Documents />} />
         <Route path="profile" element={<Profile />} />
