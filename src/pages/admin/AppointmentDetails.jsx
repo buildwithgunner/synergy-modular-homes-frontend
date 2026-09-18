@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import api from '../../api/axios'; // Make sure this path correctly points to your api/axios.js file
+import api from '../../api/axois'; // Make sure this path correctly points to your api/axios.js file
 
 const AppointmentDetails = () => {
   const { id } = useParams();
