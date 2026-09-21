@@ -1,10 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
-import SaveHomeButton from '../components/SaveHomeButton'
 import LoginRequiredModal from '../components/LoginRequiredModal'
 import InquiryModal from '../components/InquiryModal'
-import BrowseCategories from '../components/BrowseCategories'
 import { getImageUrl } from '../utils/image'
 
 const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
@@ -15,7 +13,9 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedHome, setSelectedHome] = useState(null)
-  const [videoError, setVideoError] = useState(false)
+  
+  // Tab State for Property Showcase API Filtering
+  const [listingType, setListingType] = useState('buy') // 'buy' | 'rent' | 'sold'
 
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [redirectPath, setRedirectPath] = useState('/pre-approved')
@@ -34,26 +34,34 @@ export default function Home() {
   const handleHeroSearch = (e) => {
     e.preventDefault()
     if (searchQuery.trim()) {
-      navigate(`/homes?search=${encodeURIComponent(searchQuery.trim())}`)
+      navigate(`/homes?search=${encodeURIComponent(searchQuery.trim())}&type=${listingType}`)
     }
   }
 
+  // FETCH HOMES FROM YOUR BACKEND API
   useEffect(() => {
     const fetchFeaturedHomes = async () => {
+      setLoading(true)
       try {
-        const res = await fetch(`${API_BASE}/homes?limit=3&featured=true`)
+        const res = await fetch(`${API_BASE}/homes?limit=4&featured=true&status=${listingType}`)
         const data = await res.json()
-        setFeaturedHomes(Array.isArray(data) ? data : data.data || [])
+        
+        // Supports paginated responses (data.data) or raw arrays
+        const homesArray = Array.isArray(data) ? data : (data.data || [])
+        setFeaturedHomes(homesArray)
       } catch (err) {
-        console.error('Error fetching featured homes:', err)
+        console.error('Error fetching homes from backend API:', err)
+        setFeaturedHomes([])
       } finally {
         setLoading(false)
       }
     }
+
     fetchFeaturedHomes()
-  }, [])
+  }, [listingType])
 
   const formatPrice = (home) => {
+    if (!home) return '$0'
     const symbol = home.currency === 'GBP' ? '£' : '$'
     if (home.price_min && home.price_max) {
       return `${symbol}${Number(home.price_min).toLocaleString()} – ${symbol}${Number(home.price_max).toLocaleString()}`
@@ -61,408 +69,294 @@ export default function Home() {
     if (home.price_min) {
       return `From ${symbol}${Number(home.price_min).toLocaleString()}`
     }
-    return `${symbol}${Number(home.price || 0).toLocaleString()}`
+    const amount = home.price || home.price_max || 0
+    return `${symbol}${Number(amount).toLocaleString()}`
   }
 
   return (
-    <div className="min-h-screen bg-[#F8F7F4] text-slate-800 font-sans selection:bg-[#B87333] selection:text-white">
+    <div className="min-h-screen bg-[#F7F7F6] text-[#222222] font-sans selection:bg-[#C9945B] selection:text-white">
+      {/* HEADER */}
       <Header />
 
-      {/* 1. HERO SECTION WITH VIDEO BACKGROUND & FALLBACK */}
-      <section className="relative text-white min-h-[85vh] flex items-center justify-center px-4 py-24 overflow-hidden">
-        {/* Background Video with Static Fallback Image */}
-        <div className="absolute inset-0 z-0 bg-slate-900">
-          {!videoError ? (
-            <video
-              autoPlay
-              loop
-              muted
-              playsInline
-              onError={() => setVideoError(true)}
-              poster="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600&q=80"
-              className="w-full h-full object-cover scale-105"
-            >
-              <source
-                src="https://videos.pexels.com/video-files/3205634/3205634-sd_640_360_25fps.mp4"
-                type="video/mp4"
-              />
-            </video>
-          ) : (
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 space-y-16">
+        
+        {/* HERO SECTION */}
+        <section className="relative rounded-[2.5rem] overflow-hidden min-h-[580px] sm:min-h-[640px] flex items-center p-6 sm:p-12 lg:p-16 shadow-lg border border-slate-200/50">
+          <div className="absolute inset-0 z-0">
             <img
-              src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1600&q=80"
-              alt="Modular Home Hero"
+              src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1800&q=85"
+              alt="Find Your Dream Home"
               className="w-full h-full object-cover"
             />
-          )}
-          {/* Dark Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C33] via-[#0B1C33]/70 to-[#0B1C33]/80" />
-        </div>
-
-        {/* Hero Content */}
-        <div className="relative max-w-5xl mx-auto text-center z-10 pt-10">
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold px-4 py-2 rounded-full mb-6 shadow-xl">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-            <span className="text-slate-100 uppercase tracking-widest text-[11px]">Next-Gen Modular Living</span>
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] mb-6 drop-shadow-sm">
-            Modern Modular Homes,<br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-amber-400 to-[#B87333]">
-              Delivered Anywhere.
-            </span>
-          </h1>
-
-          <p className="text-slate-200 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed font-light">
-            Explore single-wides, double-wides, tiny homes, and workforce setups. Factory-crafted precision meets hassle-free installation.
-          </p>
-
-          {/* Search Bar */}
-          <form
-            onSubmit={handleHeroSearch}
-            className="max-w-2xl mx-auto flex flex-col sm:flex-row items-center bg-white/95 backdrop-blur-xl rounded-2xl p-2 shadow-2xl gap-2 border border-white/30 transition-all focus-within:ring-2 focus-within:ring-[#B87333]"
-          >
-            <div className="flex items-center w-full px-3">
-              <svg className="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search city, zip code, or floor plan..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-3.5 text-slate-900 focus:outline-none rounded-xl text-sm placeholder:text-slate-400 bg-transparent"
-              />
-            </div>
-            <button
-              type="submit"
-              className="w-full sm:w-auto bg-[#0B1C33] hover:bg-[#B87333] text-white px-8 py-3.5 rounded-xl font-bold transition-all duration-300 shrink-0 shadow-lg"
-            >
-              Search
-            </button>
-          </form>
-
-          {/* Quick Stats Pill */}
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-4 text-xs text-slate-300 font-medium">
-            <span className="flex items-center gap-1.5"><svg className="w-4 h-4 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg> 4.9/5 Homeowner Rating</span>
-            <span>•</span>
-            <span>Direct Factory Pricing</span>
-            <span>•</span>
-            <span>Turnkey Site Setup</span>
-          </div>
-        </div>
-
-        {/* Floating Media Cards (Desktop Only) */}
-        <div className="hidden lg:block absolute bottom-8 left-8 z-10 bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl shadow-2xl max-w-xs">
-          <div className="flex items-center gap-3">
-            <img src="https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=150&q=80" alt="Delivery preview" className="w-14 h-14 rounded-xl object-cover" />
-            <div>
-              <p className="text-xs font-bold text-white">Turnkey Delivery</p>
-              <p className="text-[11px] text-slate-300">We ship direct to your plot</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="hidden lg:block absolute bottom-8 right-8 z-10 bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-2xl shadow-2xl max-w-xs">
-          <div className="flex items-center gap-3">
-            <img src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=150&q=80" alt="Interior preview" className="w-14 h-14 rounded-xl object-cover" />
-            <div>
-              <p className="text-xs font-bold text-white">Custom Interiors</p>
-              <p className="text-[11px] text-slate-300">Choose luxury finishes</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 2. STATS BAR */}
-      <section className="bg-white border-b border-slate-200/80 shadow-sm relative z-10">
-        <div className="max-w-6xl mx-auto px-4 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          {[
-            { value: '150+', label: 'Homes Ready to Ship' },
-            { value: '12+', label: 'Years Industry Expertise' },
-            { value: '980+', label: 'Delivered Homes' },
-            { value: '24h', label: 'Fast Pre-Approval' },
-          ].map((stat) => (
-            <div key={stat.label} className="p-2">
-              <p className="text-3xl sm:text-4xl font-black text-[#0B1C33] tracking-tight">{stat.value}</p>
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wider mt-1">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 3. FEATURED HOMES SECTION */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12 gap-4">
-          <div>
-            <span className="text-[#B87333] text-xs font-bold uppercase tracking-widest block mb-1">Live Inventory</span>
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1C33]">Featured Homes</h2>
-            <p className="text-slate-500 mt-1 text-sm sm:text-base">Hand-picked modular homes ready for delivery</p>
-          </div>
-          <Link
-            to="/homes"
-            className="inline-flex items-center gap-1 text-sm font-bold text-[#B87333] hover:text-[#0B1C33] transition-colors"
-          >
-            View All Homes <span className="text-lg">→</span>
-          </Link>
-        </div>
-
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white border border-slate-100 rounded-2xl overflow-hidden animate-pulse">
-                <div className="h-64 bg-slate-200" />
-                <div className="p-5 space-y-3">
-                  <div className="h-5 bg-slate-200 rounded w-3/4" />
-                  <div className="h-7 bg-slate-200 rounded w-1/2" />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {featuredHomes.map((home) => (
-              <div
-                key={home.id}
-                className="bg-white border border-slate-200/60 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col group"
-              >
-                <div className="relative h-64 overflow-hidden bg-slate-900">
-                  <img
-                    src={getImageUrl(home.image) || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&q=80'}
-                    alt={home.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                    loading="lazy"
-                  />
-                  <span className="absolute top-3 left-3 bg-[#0B1C33]/90 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-lg">
-                    {home.location || home.house_type || 'Available'}
-                  </span>
-                  <div className="absolute top-3 right-3">
-                    <SaveHomeButton homeId={home.id} />
-                  </div>
-                </div>
-
-                <div className="p-5 flex-1 flex flex-col justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-[#0B1C33] mb-1 group-hover:text-[#B87333] transition line-clamp-1">
-                      {home.title}
-                    </h3>
-                    <p className="text-2xl font-black text-[#B87333] mb-4">{formatPrice(home)}</p>
-                    <div className="grid grid-cols-3 gap-2 py-3 border-y border-slate-100 text-center text-xs font-semibold text-slate-600 mb-4">
-                      <div><span className="block text-slate-400 font-normal text-[11px]">Beds</span>{home.beds || 0}</div>
-                      <div><span className="block text-slate-400 font-normal text-[11px]">Baths</span>{home.baths || 0}</div>
-                      <div><span className="block text-slate-400 font-normal text-[11px]">Sq Ft</span>{home.living_area_min || home.sqft || 'N/A'}</div>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Link
-                      to={`/homes/${home.id}`}
-                      className="flex-1 text-center border border-slate-200 hover:border-[#B87333] hover:text-[#B87333] text-sm font-semibold py-2.5 rounded-xl transition"
-                    >
-                      View Details
-                    </Link>
-                    <button
-                      onClick={() => setSelectedHome(home)}
-                      className="flex-1 bg-[#0B1C33] hover:bg-[#B87333] text-white text-sm font-semibold py-2.5 rounded-xl transition-colors shadow-sm"
-                    >
-                      I'm Interested
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* 4. WHY CHOOSE US */}
-      <section className="py-24 bg-white border-y border-slate-200/60">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <span className="text-[#B87333] text-xs font-bold uppercase tracking-wider block mb-2">Precision Engineering</span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B1C33] mb-6 leading-tight">
-                Why Choose Synergy Modular Living?
-              </h2>
-              <p className="text-slate-600 mb-8 leading-relaxed">
-                We specialize in factory-built modular and manufactured housing built to strict federal HUD standards. Enjoy up to 40% faster construction timelines without sacrificing design quality.
+          <div className="relative z-10 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
+            <div className="lg:col-span-7 space-y-6">
+              <h1 className="text-4xl sm:text-6xl font-extrabold text-white leading-[1.1] tracking-tight">
+                Find Your Dream <br />
+                Home Today
+              </h1>
+              <p className="text-slate-200 text-sm sm:text-base max-w-md font-light leading-relaxed">
+                Partner with our local experts who are dedicated to helping you find the perfect property for your lifestyle.
               </p>
 
-              <div className="space-y-6">
-                {[
-                  { title: 'Wide Floor Plan Selection', desc: 'Single-wides, double-wides, tiny homes, and workforce housing.' },
-                  { title: 'Flexible Financing & Fast Approval', desc: 'Get pre-approved in as little as 24 hours with custom loan packages.' },
-                  { title: 'Full Turnkey Setup', desc: 'We coordinate permits, foundations, utility hooks, and direct delivery.' },
-                ].map((item) => (
-                  <div key={item.title} className="flex gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-[#B87333]/10 text-[#B87333] flex items-center justify-center shrink-0">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
-                      </svg>
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-[#0B1C33]">{item.title}</h3>
-                      <p className="text-sm text-slate-500 mt-0.5">{item.desc}</p>
-                    </div>
+              <div className="flex flex-wrap gap-4 pt-2">
+                <button
+                  onClick={() => navigate('/homes')}
+                  className="bg-[#C9945B] hover:bg-[#b58149] text-white text-sm font-semibold px-7 py-3.5 rounded-full transition shadow-md"
+                >
+                  Explore Homes
+                </button>
+                <button
+                  onClick={() => navigate('/about')}
+                  className="border border-white/40 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white text-sm font-semibold px-7 py-3.5 rounded-full transition"
+                >
+                  Learn More
+                </button>
+              </div>
+            </div>
+
+            <div className="lg:col-span-5 flex justify-end">
+              <div className="bg-white/95 backdrop-blur-xl rounded-[2rem] p-7 w-full max-w-sm shadow-2xl text-slate-800 border border-white/40">
+                <h3 className="text-2xl font-bold text-[#1A1D20] mb-2">Who We Are?</h3>
+                <p className="text-xs text-slate-500 mb-6 leading-relaxed">
+                  We offer a range of services including buying, selling, and property management.
+                </p>
+
+                <div className="grid grid-cols-3 gap-2 text-center border-t border-slate-100 pt-5">
+                  <div>
+                    <span className="block text-xl font-extrabold text-[#C9945B]">100+</span>
+                    <span className="text-[10px] text-slate-400 font-semibold tracking-wide">Premium Homes</span>
                   </div>
+                  <div>
+                    <span className="block text-xl font-extrabold text-[#C9945B]">600+</span>
+                    <span className="text-[10px] text-slate-400 font-semibold tracking-wide">Agents Network</span>
+                  </div>
+                  <div>
+                    <span className="block text-xl font-extrabold text-[#C9945B]">3K+</span>
+                    <span className="text-[10px] text-slate-400 font-semibold tracking-wide">Happy Clients</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* GALLERY SECTION */}
+        <section className="space-y-8">
+          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+            <div>
+              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20] tracking-tight">
+                Discover Your Perfect <br />
+                <span className="text-[#C9945B]">Property Match</span>
+              </h2>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 max-w-md leading-relaxed">
+              We listen to your needs, understand your goals, and curate the best property matches just for you. Whether you're buying, selling, or investing, our team is here to guide you every step of the way.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <div className="lg:col-span-6 relative rounded-[2rem] overflow-hidden min-h-[460px] group shadow-md border border-slate-200/60 bg-slate-900">
+              <img
+                src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80"
+                alt="456 Oceanview Drive"
+                className="w-full h-full object-cover group-hover:scale-105 transition duration-700 opacity-95"
+              />
+
+              <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-2.5 rounded-full cursor-pointer hover:bg-white transition text-slate-700 shadow-sm">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </div>
+
+              <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-md rounded-[1.5rem] p-5 shadow-xl border border-white/30 flex items-center justify-between">
+                <div>
+                  <div className="text-2xl font-black text-[#C9945B] tracking-tight mb-0.5">$1,250,000</div>
+                  <div className="text-xs font-medium text-slate-400">456 Oceanview Drive,<br />Malibu, CA 90265</div>
+                </div>
+
+                <div className="flex items-center gap-4 text-center border-l pl-5 border-slate-200 text-slate-700">
+                  <div>
+                    <div className="text-xs font-bold">4</div>
+                    <div className="text-[10px] text-slate-400">Beds</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold">3</div>
+                    <div className="text-[10px] text-slate-400">Baths</div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold">2</div>
+                    <div className="text-[10px] text-slate-400">Garage</div>
+                  </div>
+                  <div className="w-8 h-8 rounded-full bg-[#C9945B] text-white flex items-center justify-center font-bold text-xs ml-1 shadow">
+                    ↗
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-6 grid grid-cols-2 gap-4">
+              {[
+                { img: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&q=80', alt: 'Kitchen' },
+                { img: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=600&q=80', alt: 'Modern Exterior' },
+                { img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&q=80', alt: 'Bathroom' },
+                { img: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=600&q=80', alt: 'Dining Area' },
+              ].map((item, idx) => (
+                <div key={idx} className="relative rounded-[1.5rem] overflow-hidden h-52 group shadow-sm bg-slate-100">
+                  <img src={item.img} alt={item.alt} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ABOUT US BANNER */}
+        <section className="bg-[#1A1D20] rounded-[2.5rem] overflow-hidden text-white grid grid-cols-1 lg:grid-cols-12 shadow-xl border border-slate-800">
+          <div className="lg:col-span-6 p-8 sm:p-12 lg:p-14 flex flex-col justify-center space-y-4">
+            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">About Us</h2>
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-md font-light">
+              At Nexora Realty, we believe finding the right home is about more than just property — it's about lifestyle, comfort, and the future.
+            </p>
+            <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-md font-light">
+              Our experienced agents provide personalized service, local expertise, and trusted guidance to make your real estate journey smooth and successful.
+            </p>
+          </div>
+          <div className="lg:col-span-6 h-64 lg:h-auto min-h-[320px]">
+            <img
+              src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&q=80"
+              alt="Our Happy Clients"
+              className="w-full h-full object-cover"
+            />
+          </div>
+        </section>
+
+        {/* ==========================================
+            PROPERTY SHOWCASE (DYNAMICALLY FETCHED FROM API)
+        ========================================== */}
+        <section className="space-y-8">
+          <div className="text-center space-y-6">
+            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20]">Property Showcase</h2>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              {/* API Filter Tabs */}
+              <div className="flex bg-slate-200/70 p-1 rounded-full text-xs font-semibold text-slate-600">
+                {['buy', 'rent', 'sold'].map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setListingType(type)}
+                    className={`px-5 py-2 rounded-full transition capitalize ${
+                      listingType === type ? 'bg-[#C9945B] text-white shadow-sm' : 'hover:text-slate-900'
+                    }`}
+                  >
+                    {type}
+                  </button>
                 ))}
               </div>
-            </div>
 
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl h-[460px] bg-slate-900 border border-slate-100 group">
-              <img
-                src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"
-                alt="Modern manufactured home setup"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0B1C33]/90 via-transparent to-transparent" />
-              <div className="absolute bottom-6 left-6 right-6 bg-white/90 backdrop-blur-md p-6 rounded-2xl shadow-xl border border-white/20 flex justify-between items-center">
-                <div>
-                  <p className="text-2xl font-black text-[#0B1C33]">12+ Years</p>
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Building Better Homes</p>
+              {/* Search Form */}
+              <form onSubmit={handleHeroSearch} className="flex items-center bg-white rounded-full px-4 py-1.5 border border-slate-200 shadow-sm w-full sm:w-80">
+                <input
+                  type="text"
+                  placeholder="Enter City or Zip Code"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-transparent text-xs text-slate-800 outline-none w-full placeholder:text-slate-400 px-1"
+                />
+                <button type="submit" className="w-7 h-7 bg-[#C9945B] hover:bg-[#b58149] rounded-full flex items-center justify-center text-white text-xs shrink-0 transition">
+                  🔍
+                </button>
+              </form>
+            </div>
+          </div>
+
+          {/* Grid Render Logic */}
+          {loading ? (
+            /* Loading Skeleton State */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="bg-white rounded-3xl p-3 border border-slate-100 animate-pulse space-y-3">
+                  <div className="h-44 bg-slate-200 rounded-2xl" />
+                  <div className="h-4 bg-slate-200 rounded w-1/2" />
+                  <div className="h-3 bg-slate-200 rounded w-3/4" />
                 </div>
-                <Link to="/about" className="text-xs font-bold text-[#B87333] hover:underline">
-                  Learn Our Story →
-                </Link>
-              </div>
+              ))}
             </div>
-          </div>
-        </div>
-      </section>
+          ) : featuredHomes.length === 0 ? (
+            /* Empty API State */
+            <div className="text-center py-12 bg-white rounded-3xl border border-slate-200/60 max-w-lg mx-auto">
+              <p className="text-sm font-semibold text-slate-600">No properties available for "{listingType}".</p>
+              <p className="text-xs text-slate-400 mt-1">Check back later or try selecting another option.</p>
+            </div>
+          ) : (
+            /* Real Backend API Results */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredHomes.map((home) => (
+                <div
+                  key={home.id || home._id}
+                  onClick={() => setSelectedHome(home)}
+                  className="bg-white rounded-[1.8rem] p-3 border border-slate-200/60 shadow-sm hover:shadow-xl transition duration-300 group cursor-pointer flex flex-col justify-between"
+                >
+                  <div className="h-48 rounded-[1.2rem] overflow-hidden relative mb-3 bg-slate-100">
+                    <img
+                      src={
+                        getImageUrl(home.image || home.featured_image || (home.images && home.images[0])) ||
+                        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80'
+                      }
+                      alt={home.title || home.location || 'Property Image'}
+                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                    />
+                  </div>
 
-      {/* 5. CATEGORIES SECTION */}
-      <BrowseCategories />
+                  <div className="px-2 pb-1 space-y-1">
+                    <h3 className="font-bold text-[#1A1D20] text-sm truncate">
+                      {home.location || home.address || home.title}
+                    </h3>
+                    
+                    <div className="text-[11px] text-slate-400 font-medium">
+                      {home.bedrooms || home.beds || 0} Beds &nbsp;|&nbsp; {home.bathrooms || home.baths || 0} Baths &nbsp;|&nbsp; {home.living_area_min || home.sqft || '—'} Sq Ft
+                    </div>
 
-      {/* 6. SHOWROOM LOCATIONS */}
-      <section 
-        className="relative text-white py-28 bg-fixed bg-cover bg-center"
-        style={{
-          backgroundImage: `url('https://images.unsplash.com/photo-1513694203232-719a280e022f?w=1600&q=80')`,
-        }}
-      >
-        <div className="absolute inset-0 bg-[#0B1C33]/90 backdrop-blur-xs" />
-        <div className="max-w-6xl mx-auto px-4 relative z-10">
-          <div className="text-center mb-16">
-            <span className="text-[#C9A66B] text-xs font-bold uppercase tracking-widest block mb-2">Experience Models Firsthand</span>
-            <h2 className="text-3xl sm:text-4xl font-black mb-3">Visit Our Showrooms</h2>
-            <p className="text-slate-300 max-w-xl mx-auto text-sm sm:text-base">
-              Tour fully staged floor models in Texas or California.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-white/10 backdrop-blur-lg border border-white/15 rounded-3xl p-8 hover:border-white/30 transition duration-300 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-2xl bg-[#B87333] flex items-center justify-center text-white font-black text-sm shadow-lg">TX</div>
-                  <div>
-                    <h3 className="text-2xl font-bold">Tyler, Texas</h3>
-                    <p className="text-xs text-slate-300">Sales Lot & Model Park</p>
+                    <div className="text-sm font-extrabold text-[#C9945B] pt-1">
+                      {formatPrice(home)}
+                    </div>
                   </div>
                 </div>
-                <p className="text-slate-200 leading-relaxed mb-8">
-                  2606 E Commerce St<br />Tyler, TX 75702
-                </p>
-              </div>
-              <a
-                href="https://maps.google.com/?q=2606+E+Commerce+St,+Tyler,+TX+75702"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-[#C9A66B] hover:text-white font-bold text-sm transition"
-              >
-                Get Directions →
-              </a>
+              ))}
             </div>
+          )}
 
-            <div className="bg-white/10 backdrop-blur-lg border border-white/15 rounded-3xl p-8 hover:border-white/30 transition duration-300 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 rounded-2xl bg-[#B87333] flex items-center justify-center text-white font-black text-sm shadow-lg">CA</div>
-                  <div>
-                    <h3 className="text-2xl font-bold">Grass Valley, California</h3>
-                    <p className="text-xs text-slate-300">Sales Lot & Model Park</p>
-                  </div>
-                </div>
-                <p className="text-slate-200 leading-relaxed mb-8">
-                  11534 Country View Way<br />Grass Valley, CA 95945
-                </p>
-              </div>
-              <a
-                href="https://maps.google.com/?q=11534+Country+View+Way,+Grass+Valley,+CA+95945"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-[#C9A66B] hover:text-white font-bold text-sm transition"
-              >
-                Get Directions →
-              </a>
-            </div>
+          {/* Slider Pagination */}
+          <div className="flex justify-center items-center gap-1.5 pt-4">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#C9945B]" />
+            <span className="w-2 h-2 rounded-full bg-slate-300" />
+            <span className="w-2 h-2 rounded-full bg-slate-300" />
+            <span className="w-2 h-2 rounded-full bg-slate-300" />
           </div>
+        </section>
+
+        {/* Protected Feature Triggers */}
+        <div className="text-center pt-8 border-t border-slate-200/60 flex flex-wrap justify-center gap-4">
+          <button
+            onClick={() => handleProtectedClick('/pre-approved')}
+            className="text-xs font-semibold text-slate-500 hover:text-[#C9945B] transition"
+          >
+            Get Pre-Approved →
+          </button>
+          <button
+            onClick={() => handleProtectedClick('/book-appointment')}
+            className="text-xs font-semibold text-slate-500 hover:text-[#C9945B] transition"
+          >
+            Book Appointment →
+          </button>
         </div>
-      </section>
+      </main>
 
-      {/* 7. CALL TO ACTION SECTION */}
-      <section className="relative bg-[#0B1C33] text-white py-20 px-4 overflow-hidden">
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          <h2 className="text-3xl sm:text-5xl font-black mb-6">Ready to Find Your Modular Home?</h2>
-          <p className="text-slate-300 mb-10 max-w-xl mx-auto text-base sm:text-lg">
-            Apply online for pre-approval or schedule a walk-through appointment with one of our modular home specialists.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button
-              onClick={() => handleProtectedClick('/pre-approved')}
-              className="bg-[#B87333] hover:bg-amber-600 text-white font-bold px-8 py-4 rounded-xl transition shadow-xl"
-            >
-              Get Pre-Approved Fast
-            </button>
-            <button
-              onClick={() => handleProtectedClick('/book-appointment')}
-              className="bg-white/10 hover:bg-white/20 text-white font-bold px-8 py-4 rounded-xl border border-white/20 transition shadow-xl"
-            >
-              Book Showroom Visit
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. FOOTER */}
-      <footer className="bg-[#071222] text-slate-400 border-t border-slate-800 text-sm">
-        <div className="max-w-7xl mx-auto px-6 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
-          <div className="lg:col-span-2 space-y-4">
-            <span className="text-2xl font-black text-white tracking-tight">SYNERGY HOMES</span>
-            <p className="text-slate-400 text-sm leading-relaxed max-w-sm">
-              Providing modern modular and manufactured housing options nationwide with end-to-end site prep, financing, and delivery.
-            </p>
-            <p className="text-xs text-slate-500 pt-2">© {new Date().getFullYear()} Synergy Modular Living. All rights reserved.</p>
-          </div>
-
-          <div>
-            <h4 className="text-white font-bold text-sm mb-4">Quick Links</h4>
-            <ul className="space-y-2.5">
-              <li><Link to="/homes" className="hover:text-white transition">All Models</Link></li>
-              <li><Link to="/categories" className="hover:text-white transition">Categories</Link></li>
-              <li><Link to="/pre-approved" className="hover:text-white transition">Financing</Link></li>
-              <li><Link to="/about" className="hover:text-white transition">About Us</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-white font-bold text-sm mb-4">Categories</h4>
-            <ul className="space-y-2.5">
-              <li><Link to="/homes?type=single-wide" className="hover:text-white transition">Single-Wides</Link></li>
-              <li><Link to="/homes?type=double-wide" className="hover:text-white transition">Double-Wides</Link></li>
-              <li><Link to="/homes?type=tiny-home" className="hover:text-white transition">Tiny Homes</Link></li>
-              <li><Link to="/homes?type=workforce" className="hover:text-white transition">Workforce Housing</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-white font-bold text-sm mb-4">Contact & Support</h4>
-            <ul className="space-y-2.5 text-xs">
-              <li>Tyler, TX • Grass Valley, CA</li>
-              <li>Support: support@synergyhomes.com</li>
-              <li>Mon - Sat: 8:00 AM - 6:00 PM</li>
-            </ul>
-          </div>
-        </div>
+      {/* FOOTER */}
+      <footer className="bg-[#1A1D20] text-slate-400 py-8 text-center text-xs border-t border-slate-800">
+        <p>© {new Date().getFullYear()} Nexora Realty. All rights reserved.</p>
       </footer>
 
       {/* MODALS */}
