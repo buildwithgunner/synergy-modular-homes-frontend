@@ -11,11 +11,10 @@ export default function Home() {
   const navigate = useNavigate()
   const [featuredHomes, setFeaturedHomes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState('')
   const [selectedHome, setSelectedHome] = useState(null)
   
-  // Tab State for Property Showcase API Filtering
-  const [listingType, setListingType] = useState('buy') // 'buy' | 'rent' | 'sold'
+  // House Type Filter State
+  const [propertyType, setPropertyType] = useState('all') // 'all' | 'single-wide' | 'double-wide' | 'modular' | 'land-home'
 
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [redirectPath, setRedirectPath] = useState('/pre-approved')
@@ -31,19 +30,17 @@ export default function Home() {
     }
   }
 
-  const handleHeroSearch = (e) => {
-    e.preventDefault()
-    if (searchQuery.trim()) {
-      navigate(`/homes?search=${encodeURIComponent(searchQuery.trim())}&type=${listingType}`)
-    }
-  }
-
-  // FETCH HOMES FROM YOUR BACKEND API
+  // FETCH HOMES FROM BACKEND API
   useEffect(() => {
     const fetchFeaturedHomes = async () => {
       setLoading(true)
       try {
-        const res = await fetch(`${API_BASE}/homes?limit=4&featured=true&status=${listingType}`)
+        let url = `${API_BASE}/homes?limit=8&featured=true`
+        if (propertyType !== 'all') {
+          url += `&type=${encodeURIComponent(propertyType)}`
+        }
+
+        const res = await fetch(url)
         const data = await res.json()
         
         // Supports paginated responses (data.data) or raw arrays
@@ -58,7 +55,7 @@ export default function Home() {
     }
 
     fetchFeaturedHomes()
-  }, [listingType])
+  }, [propertyType])
 
   const formatPrice = (home) => {
     if (!home) return '$0'
@@ -233,42 +230,36 @@ export default function Home() {
         </section>
 
         {/* ==========================================
-            PROPERTY SHOWCASE (DYNAMICALLY FETCHED FROM API)
+            PROPERTY SHOWCASE (HOUSE TYPE TABS)
         ========================================== */}
         <section className="space-y-8">
-          <div className="text-center space-y-6">
+          <div className="text-center space-y-5">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20]">Property Showcase</h2>
 
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-              {/* API Filter Tabs */}
-              <div className="flex bg-slate-200/70 p-1 rounded-full text-xs font-semibold text-slate-600">
-                {['buy', 'rent', 'sold'].map((type) => (
+            {/* House Type Filter Tab Bar */}
+            <div className="flex justify-center">
+              <div className="inline-flex flex-wrap justify-center items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-full text-xs font-semibold text-slate-600 shadow-inner">
+                {[
+                  { id: 'all', label: 'All Types' },
+                  { id: 'single-wide', label: 'Single Wide' },
+                  { id: 'double-wide', label: 'Double Wide' },
+                  { id: 'modular', label: 'Modular' },
+                  { id: 'land-home', label: 'Land & Home' },
+                ].map((item) => (
                   <button
-                    key={type}
+                    key={item.id}
                     type="button"
-                    onClick={() => setListingType(type)}
-                    className={`px-5 py-2 rounded-full transition capitalize ${
-                      listingType === type ? 'bg-[#C9945B] text-white shadow-sm' : 'hover:text-slate-900'
+                    onClick={() => setPropertyType(item.id)}
+                    className={`px-5 py-2 rounded-full transition-all duration-200 ${
+                      propertyType === item.id
+                        ? 'bg-[#C9945B] text-white shadow-md font-bold'
+                        : 'hover:text-slate-900 hover:bg-slate-300/50'
                     }`}
                   >
-                    {type}
+                    {item.label}
                   </button>
                 ))}
               </div>
-
-              {/* Search Form */}
-              <form onSubmit={handleHeroSearch} className="flex items-center bg-white rounded-full px-4 py-1.5 border border-slate-200 shadow-sm w-full sm:w-80">
-                <input
-                  type="text"
-                  placeholder="Enter City or Zip Code"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="bg-transparent text-xs text-slate-800 outline-none w-full placeholder:text-slate-400 px-1"
-                />
-                <button type="submit" className="w-7 h-7 bg-[#C9945B] hover:bg-[#b58149] rounded-full flex items-center justify-center text-white text-xs shrink-0 transition">
-                  🔍
-                </button>
-              </form>
             </div>
           </div>
 
@@ -286,9 +277,9 @@ export default function Home() {
             </div>
           ) : featuredHomes.length === 0 ? (
             /* Empty API State */
-            <div className="text-center py-12 bg-white rounded-3xl border border-slate-200/60 max-w-lg mx-auto">
-              <p className="text-sm font-semibold text-slate-600">No properties available for "{listingType}".</p>
-              <p className="text-xs text-slate-400 mt-1">Check back later or try selecting another option.</p>
+            <div className="text-center py-12 bg-white rounded-3xl border border-slate-200/60 max-w-lg mx-auto shadow-sm">
+              <p className="text-sm font-semibold text-slate-700">No properties available in this category.</p>
+              <p className="text-xs text-slate-400 mt-1">Try selecting another house type option above.</p>
             </div>
           ) : (
             /* Real Backend API Results */
@@ -296,39 +287,65 @@ export default function Home() {
               {featuredHomes.map((home) => (
                 <div
                   key={home.id || home._id}
-                  onClick={() => setSelectedHome(home)}
+                  onClick={() => navigate(`/homes/${home.id}`)}
                   className="bg-white rounded-[1.8rem] p-3 border border-slate-200/60 shadow-sm hover:shadow-xl transition duration-300 group cursor-pointer flex flex-col justify-between"
                 >
-                  <div className="h-48 rounded-[1.2rem] overflow-hidden relative mb-3 bg-slate-100">
-                    <img
-                      src={
-                        getImageUrl(home.image || home.featured_image || (home.images && home.images[0])) ||
-                        'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80'
-                      }
-                      alt={home.title || home.location || 'Property Image'}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                    />
+                  <div>
+                    <div className="h-48 rounded-[1.2rem] overflow-hidden relative mb-3 bg-slate-100">
+                      <img
+                        src={
+                          getImageUrl(home.image || home.featured_image || (home.images && home.images[0])) ||
+                          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80'
+                        }
+                        alt={home.title || home.location || 'Property Image'}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      />
+                    </div>
+
+                    <div className="px-2 pb-1 space-y-1">
+                      <h3 className="font-bold text-[#1A1D20] text-sm truncate">
+                        {home.title || home.location || home.address}
+                      </h3>
+                      
+                      <div className="text-[11px] text-slate-400 font-medium">
+                        {home.bedrooms || home.beds || 0} Beds &nbsp;|&nbsp; {home.bathrooms || home.baths || 0} Baths &nbsp;|&nbsp; {home.living_area_min || home.sqft || '—'} Sq Ft
+                      </div>
+
+                      <div className="text-sm font-extrabold text-[#C9945B] pt-1">
+                        {formatPrice(home)}
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="px-2 pb-1 space-y-1">
-                    <h3 className="font-bold text-[#1A1D20] text-sm truncate">
-                      {home.location || home.address || home.title}
-                    </h3>
-                    
-                    <div className="text-[11px] text-slate-400 font-medium">
-                      {home.bedrooms || home.beds || 0} Beds &nbsp;|&nbsp; {home.bathrooms || home.baths || 0} Baths &nbsp;|&nbsp; {home.living_area_min || home.sqft || '—'} Sq Ft
-                    </div>
-
-                    <div className="text-sm font-extrabold text-[#C9945B] pt-1">
-                      {formatPrice(home)}
-                    </div>
+                  {/* ACTION BUTTONS */}
+                  <div className="grid grid-cols-2 gap-2 pt-4 mt-2 border-t border-slate-100 px-1">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        navigate(`/homes/${home.id}`)
+                      }}
+                      className="w-full py-2 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      View Details
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedHome(home)
+                      }}
+                      className="w-full py-2 rounded-xl text-xs font-semibold bg-[#C9945B] hover:bg-[#b58149] text-white shadow-sm transition"
+                    >
+                      Interested
+                    </button>
                   </div>
                 </div>
               ))}
             </div>
           )}
 
-          {/* Slider Pagination */}
+          {/* Slider Indicator */}
           <div className="flex justify-center items-center gap-1.5 pt-4">
             <span className="w-2.5 h-2.5 rounded-full bg-[#C9945B]" />
             <span className="w-2 h-2 rounded-full bg-slate-300" />
