@@ -54,12 +54,19 @@ export default function Home() {
     const fetchFeaturedHomes = async () => {
       setLoading(true)
       try {
-        // Fetch homes endpoint without appending unsupported filter query params
         const url = `${API_BASE}/homes?page=${currentPage}&limit=12`
-        const res = await fetch(url)
+        
+        // Headers and keepalive prevent QUIC / HTTP3 protocol drops
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Accept': 'application/json',
+          },
+          keepalive: true,
+        })
         
         if (!res.ok) {
-          throw new Error(`API response error: ${res.status}`)
+          throw new Error(`API HTTP Error: ${res.status}`)
         }
 
         const data = await res.json()
@@ -67,7 +74,7 @@ export default function Home() {
         // Extract array from paginated response or plain array
         let homesArray = Array.isArray(data) ? data : (data.data || [])
 
-        // Filter homes based on propertyType
+        // Client-side filtering fallback for categories
         if (propertyType !== 'all') {
           const validKeywords = propertyTypeMap[propertyType] || []
           homesArray = homesArray.filter((home) => {
@@ -97,7 +104,7 @@ export default function Home() {
       } catch (err) {
         console.error('Error fetching homes from backend API:', err)
         setFeaturedHomes([])
-      } finally {
+      } fontly {
         setLoading(false)
       }
     }
@@ -277,9 +284,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ==========================================
-            PROPERTY SHOWCASE (HOUSE TYPE TABS + PAGINATION)
-        ========================================== */}
+        {/* PROPERTY SHOWCASE */}
         <section className="space-y-8" id="showcase">
           <div className="text-center space-y-5">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20]">Property Showcase</h2>
@@ -313,7 +318,6 @@ export default function Home() {
 
           {/* Grid Render Logic */}
           {loading ? (
-            /* Loading Skeleton State */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="bg-white rounded-3xl p-3 border border-slate-100 animate-pulse space-y-3">
@@ -324,13 +328,11 @@ export default function Home() {
               ))}
             </div>
           ) : featuredHomes.length === 0 ? (
-            /* Empty API State */
             <div className="text-center py-12 bg-white rounded-3xl border border-slate-200/60 max-w-lg mx-auto shadow-sm">
               <p className="text-sm font-semibold text-slate-700">No properties available in this category.</p>
               <p className="text-xs text-slate-400 mt-1">Try selecting another house type option above.</p>
             </div>
           ) : (
-            /* Real Backend API Results */
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               {featuredHomes.map((home) => (
                 <div
@@ -365,7 +367,6 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* ACTION BUTTONS */}
                   <div className="grid grid-cols-2 gap-2 pt-4 mt-2 border-t border-slate-100 px-1">
                     <button
                       type="button"
@@ -393,7 +394,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* PAGINATION CONTROLS (PREVIOUS / NEXT) */}
+          {/* PAGINATION CONTROLS */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200/60">
             <span className="text-xs font-medium text-slate-500">
               Showing Page <strong className="text-slate-800">{currentPage}</strong> of <strong className="text-slate-800">{lastPage}</strong>
