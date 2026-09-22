@@ -103,8 +103,7 @@ export default function Home() {
 
       } catch (err) {
         console.error('Error fetching homes from backend API:', err)
-        setFeaturedHomes([])
-      } fontly {
+     } finally {
         setLoading(false)
       }
     }
