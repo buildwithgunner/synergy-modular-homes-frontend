@@ -16,6 +16,11 @@ export default function Home() {
   // House Type Filter State
   const [propertyType, setPropertyType] = useState('all') // 'all' | 'single-wide' | 'double-wide' | 'modular' | 'land-home'
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1)
+  const [lastPage, setLastPage] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [redirectPath, setRedirectPath] = useState('/pre-approved')
 
@@ -30,12 +35,27 @@ export default function Home() {
     }
   }
 
+  // Map tab IDs to clean display names for client-side fallback filtering
+  const propertyTypeMap = {
+    'single-wide': ['single wide', 'single-wide', 'singlewide'],
+    'double-wide': ['double wide', 'double-wide', 'doublewide'],
+    'modular': ['modular'],
+    'land-home': ['land & home', 'land and home', 'land-home', 'land_home']
+  }
+
+  // Reset to page 1 whenever user changes category tab
+  const handleTypeChange = (typeId) => {
+    setPropertyType(typeId)
+    setCurrentPage(1)
+  }
+
   // FETCH HOMES FROM BACKEND API
   useEffect(() => {
     const fetchFeaturedHomes = async () => {
       setLoading(true)
       try {
-        let url = `${API_BASE}/homes?limit=8&featured=true`
+        let url = `${API_BASE}/homes?page=${currentPage}&limit=8`
+        
         if (propertyType !== 'all') {
           url += `&type=${encodeURIComponent(propertyType)}`
         }
@@ -44,8 +64,33 @@ export default function Home() {
         const data = await res.json()
         
         // Supports paginated responses (data.data) or raw arrays
-        const homesArray = Array.isArray(data) ? data : (data.data || [])
+        let homesArray = Array.isArray(data) ? data : (data.data || [])
+
+        // Fallback filter on client-side if API doesn't filter types strictly
+        if (propertyType !== 'all' && homesArray.length > 0) {
+          const validTypes = propertyTypeMap[propertyType] || []
+          const filtered = homesArray.filter((h) => {
+            const hType = (h.type || h.category || h.property_type || '').toLowerCase()
+            return validTypes.some((vt) => hType.includes(vt))
+          })
+
+          // Apply client-side filtering if matches are found
+          if (filtered.length > 0) {
+            homesArray = filtered
+          }
+        }
+
         setFeaturedHomes(homesArray)
+
+        // Handle pagination metadata from API
+        if (data.last_page) setLastPage(data.last_page)
+        else if (data.meta?.last_page) setLastPage(data.meta.last_page)
+        else setLastPage(1)
+
+        if (data.total) setTotalItems(data.total)
+        else if (data.meta?.total) setTotalItems(data.meta.total)
+        else setTotalItems(homesArray.length)
+
       } catch (err) {
         console.error('Error fetching homes from backend API:', err)
         setFeaturedHomes([])
@@ -55,7 +100,7 @@ export default function Home() {
     }
 
     fetchFeaturedHomes()
-  }, [propertyType])
+  }, [propertyType, currentPage])
 
   const formatPrice = (home) => {
     if (!home) return '$0'
@@ -230,9 +275,9 @@ export default function Home() {
         </section>
 
         {/* ==========================================
-            PROPERTY SHOWCASE (HOUSE TYPE TABS)
+            PROPERTY SHOWCASE (HOUSE TYPE TABS + PAGINATION)
         ========================================== */}
-        <section className="space-y-8">
+        <section className="space-y-8" id="showcase">
           <div className="text-center space-y-5">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20]">Property Showcase</h2>
 
@@ -244,12 +289,12 @@ export default function Home() {
                   { id: 'single-wide', label: 'Single Wide' },
                   { id: 'double-wide', label: 'Double Wide' },
                   { id: 'modular', label: 'Modular' },
-                  
+                 
                 ].map((item) => (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => setPropertyType(item.id)}
+                    onClick={() => handleTypeChange(item.id)}
                     className={`px-5 py-2 rounded-full transition-all duration-200 ${
                       propertyType === item.id
                         ? 'bg-[#C9945B] text-white shadow-md font-bold'
@@ -345,12 +390,37 @@ export default function Home() {
             </div>
           )}
 
-          {/* Slider Indicator */}
-          <div className="flex justify-center items-center gap-1.5 pt-4">
-            <span className="w-2.5 h-2.5 rounded-full bg-[#C9945B]" />
-            <span className="w-2 h-2 rounded-full bg-slate-300" />
-            <span className="w-2 h-2 rounded-full bg-slate-300" />
-            <span className="w-2 h-2 rounded-full bg-slate-300" />
+          {/* PAGINATION CONTROLS (PREVIOUS / NEXT) */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200/60">
+            <span className="text-xs font-medium text-slate-500">
+              Showing Page <strong className="text-slate-800">{currentPage}</strong> of <strong className="text-slate-800">{lastPage}</strong>
+            </span>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                disabled={currentPage <= 1 || loading}
+                onClick={() => {
+                  setCurrentPage((prev) => Math.max(prev - 1, 1))
+                  document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="px-5 py-2 rounded-full text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
+              >
+                ← Previous
+              </button>
+
+              <button
+                type="button"
+                disabled={currentPage >= lastPage || loading}
+                onClick={() => {
+                  setCurrentPage((prev) => prev + 1)
+                  document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="px-6 py-2 rounded-full text-xs font-bold bg-[#1A1D20] text-white hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed transition shadow-md"
+              >
+                Next →
+              </button>
+            </div>
           </div>
         </section>
 
