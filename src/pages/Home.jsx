@@ -244,7 +244,7 @@ export default function Home() {
                   { id: 'single-wide', label: 'Single Wide' },
                   { id: 'double-wide', label: 'Double Wide' },
                   { id: 'modular', label: 'Modular' },
-                  { id: 'land-home', label: 'Land & Home' },
+                  
                 ].map((item) => (
                   <button
                     key={item.id}
