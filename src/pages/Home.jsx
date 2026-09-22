@@ -13,13 +13,12 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [selectedHome, setSelectedHome] = useState(null)
   
-  // House Type Filter State
-  const [propertyType, setPropertyType] = useState('all') // 'all' | 'single-wide' | 'double-wide' | 'modular'
+  // House Type Filter State ('all' | 'single-wide' | 'double-wide' | 'modular')
+  const [propertyType, setPropertyType] = useState('all')
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
   const [lastPage, setLastPage] = useState(1)
-  const [totalItems, setTotalItems] = useState(0)
 
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [redirectPath, setRedirectPath] = useState('/pre-approved')
@@ -35,14 +34,14 @@ export default function Home() {
     }
   }
 
-  // Map category tab IDs to acceptable target strings
+  // Helper dictionary to filter client-side as fallback
   const propertyTypeMap = {
     'single-wide': ['single wide', 'single-wide', 'singlewide', 'single'],
     'double-wide': ['double wide', 'double-wide', 'doublewide', 'double'],
     'modular': ['modular']
   }
 
-  // Reset page to 1 when changing type tabs
+  // Reset page to 1 when changing category tabs
   const handleTypeChange = (typeId) => {
     setPropertyType(typeId)
     setCurrentPage(1)
@@ -55,8 +54,12 @@ export default function Home() {
     const fetchFeaturedHomes = async () => {
       setLoading(true)
       try {
-        const url = `${API_BASE}/homes?page=${currentPage}&limit=8`
-        
+        // Construct query parameters
+        let url = `${API_BASE}/homes?page=${currentPage}&limit=8`
+        if (propertyType !== 'all') {
+          url += `&type=${propertyType}`
+        }
+
         const res = await fetch(url, {
           method: 'GET',
           headers: {
@@ -74,10 +77,10 @@ export default function Home() {
 
         let homesArray = Array.isArray(data) ? data : (data.data || [])
 
-        // Filter homes based on active tab
-        if (propertyType !== 'all') {
+        // Fallback filter if backend returns all records despite query parameter
+        if (propertyType !== 'all' && homesArray.length > 0) {
           const validKeywords = propertyTypeMap[propertyType] || []
-          homesArray = homesArray.filter((home) => {
+          const filtered = homesArray.filter((home) => {
             const rawType = (
               home.type || 
               home.category || 
@@ -88,6 +91,11 @@ export default function Home() {
 
             return validKeywords.some((keyword) => rawType.includes(keyword))
           })
+
+          // Only apply client filter if it didn't reduce output to empty set
+          if (filtered.length > 0) {
+            homesArray = filtered
+          }
         }
 
         setFeaturedHomes(homesArray)
@@ -96,10 +104,6 @@ export default function Home() {
         if (data.last_page) setLastPage(data.last_page)
         else if (data.meta?.last_page) setLastPage(data.meta.last_page)
         else setLastPage(1)
-
-        if (data.total) setTotalItems(data.total)
-        else if (data.meta?.total) setTotalItems(data.meta.total)
-        else setTotalItems(homesArray.length)
 
       } catch (err) {
         console.error('Error fetching homes from backend API:', err)
@@ -275,7 +279,7 @@ export default function Home() {
           <div className="text-center space-y-5">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20]">Property Showcase</h2>
 
-            {/* Filter Tab Bar (Without Land & Home) */}
+            {/* Filter Tab Bar */}
             <div className="flex justify-center">
               <div className="inline-flex flex-wrap justify-center items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-full text-xs font-semibold text-slate-600 shadow-inner">
                 {[
