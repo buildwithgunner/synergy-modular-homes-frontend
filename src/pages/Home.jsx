@@ -35,15 +35,15 @@ export default function Home() {
     }
   }
 
-  // Map tab IDs to clean display names for client-side fallback filtering
+  // Map category tab IDs to acceptable target strings
   const propertyTypeMap = {
-    'single-wide': ['single wide', 'single-wide', 'singlewide'],
-    'double-wide': ['double wide', 'double-wide', 'doublewide'],
+    'single-wide': ['single wide', 'single-wide', 'singlewide', 'single'],
+    'double-wide': ['double wide', 'double-wide', 'doublewide', 'double'],
     'modular': ['modular'],
-    'land-home': ['land & home', 'land and home', 'land-home', 'land_home']
+    'land-home': ['land & home', 'land and home', 'land-home', 'land_home', 'land']
   }
 
-  // Reset to page 1 whenever user changes category tab
+  // Reset page to 1 when changing type tabs
   const handleTypeChange = (typeId) => {
     setPropertyType(typeId)
     setCurrentPage(1)
@@ -54,35 +54,38 @@ export default function Home() {
     const fetchFeaturedHomes = async () => {
       setLoading(true)
       try {
-        let url = `${API_BASE}/homes?page=${currentPage}&limit=8`
+        // Fetch homes endpoint without appending unsupported filter query params
+        const url = `${API_BASE}/homes?page=${currentPage}&limit=12`
+        const res = await fetch(url)
         
-        if (propertyType !== 'all') {
-          url += `&type=${encodeURIComponent(propertyType)}`
+        if (!res.ok) {
+          throw new Error(`API response error: ${res.status}`)
         }
 
-        const res = await fetch(url)
         const data = await res.json()
         
-        // Supports paginated responses (data.data) or raw arrays
+        // Extract array from paginated response or plain array
         let homesArray = Array.isArray(data) ? data : (data.data || [])
 
-        // Fallback filter on client-side if API doesn't filter types strictly
-        if (propertyType !== 'all' && homesArray.length > 0) {
-          const validTypes = propertyTypeMap[propertyType] || []
-          const filtered = homesArray.filter((h) => {
-            const hType = (h.type || h.category || h.property_type || '').toLowerCase()
-            return validTypes.some((vt) => hType.includes(vt))
-          })
+        // Filter homes based on propertyType
+        if (propertyType !== 'all') {
+          const validKeywords = propertyTypeMap[propertyType] || []
+          homesArray = homesArray.filter((home) => {
+            const rawType = (
+              home.type || 
+              home.category || 
+              home.property_type || 
+              home.title || 
+              ''
+            ).toLowerCase()
 
-          // Apply client-side filtering if matches are found
-          if (filtered.length > 0) {
-            homesArray = filtered
-          }
+            return validKeywords.some((keyword) => rawType.includes(keyword))
+          })
         }
 
         setFeaturedHomes(homesArray)
 
-        // Handle pagination metadata from API
+        // Set pagination metadata
         if (data.last_page) setLastPage(data.last_page)
         else if (data.meta?.last_page) setLastPage(data.meta.last_page)
         else setLastPage(1)
@@ -289,7 +292,7 @@ export default function Home() {
                   { id: 'single-wide', label: 'Single Wide' },
                   { id: 'double-wide', label: 'Double Wide' },
                   { id: 'modular', label: 'Modular' },
-                 
+                  { id: 'land-home', label: 'Land & Home' },
                 ].map((item) => (
                   <button
                     key={item.id}
