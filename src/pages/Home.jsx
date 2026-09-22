@@ -12,7 +12,7 @@ export default function Home() {
   const [featuredHomes, setFeaturedHomes] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedHome, setSelectedHome] = useState(null)
-  
+
   // House Type Filter State ('all' | 'single-wide' | 'double-wide' | 'modular')
   const [propertyType, setPropertyType] = useState('all')
 
@@ -66,13 +66,13 @@ export default function Home() {
             'Accept': 'application/json',
           },
         })
-        
+
         if (!res.ok) {
           throw new Error(`API HTTP Error: ${res.status}`)
         }
 
         const data = await res.json()
-        
+
         if (!isMounted) return
 
         let homesArray = Array.isArray(data) ? data : (data.data || [])
@@ -82,10 +82,10 @@ export default function Home() {
           const validKeywords = propertyTypeMap[propertyType] || []
           const filtered = homesArray.filter((home) => {
             const rawType = (
-              home.type || 
-              home.category || 
-              home.property_type || 
-              home.title || 
+              home.type ||
+              home.category ||
+              home.property_type ||
+              home.title ||
               ''
             ).toLowerCase()
 
@@ -139,7 +139,7 @@ export default function Home() {
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 space-y-16">
-        
+
         {/* HERO SECTION */}
         <section className="relative rounded-[2.5rem] overflow-hidden min-h-[580px] sm:min-h-[640px] flex items-center p-6 sm:p-12 lg:p-16 shadow-lg border border-slate-200/50">
           <div className="absolute inset-0 z-0">
@@ -267,7 +267,12 @@ export default function Home() {
                 { img: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=500&q=70&auto=format', alt: 'Dining Area' },
               ].map((item, idx) => (
                 <div key={idx} className="relative rounded-[1.5rem] overflow-hidden h-52 group shadow-sm bg-slate-100">
-                  <img src={item.img} alt={item.alt} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <img
+                    src={item.img}
+                    alt={item.alt}
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                  />
                 </div>
               ))}
             </div>
@@ -338,6 +343,8 @@ export default function Home() {
                         }
                         alt={home.title || home.location || 'Property Image'}
                         loading="lazy"
+                        decoding="async"
+                        fetchPriority="low"
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                       />
                     </div>
@@ -346,7 +353,7 @@ export default function Home() {
                       <h3 className="font-bold text-[#1A1D20] text-sm truncate">
                         {home.title || home.location || home.address}
                       </h3>
-                      
+
                       <div className="text-[11px] text-slate-400 font-medium">
                         {home.bedrooms || home.beds || 0} Beds &nbsp;|&nbsp; {home.bathrooms || home.baths || 0} Baths &nbsp;|&nbsp; {home.living_area_min || home.sqft || '—'} Sq Ft
                       </div>
