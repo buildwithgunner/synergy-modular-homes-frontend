@@ -14,7 +14,7 @@ export default function Home() {
   const [selectedHome, setSelectedHome] = useState(null)
   
   // House Type Filter State
-  const [propertyType, setPropertyType] = useState('all') // 'all' | 'single-wide' | 'double-wide' | 'modular' | 'land-home'
+  const [propertyType, setPropertyType] = useState('all') // 'all' | 'single-wide' | 'double-wide' | 'modular'
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
@@ -39,8 +39,7 @@ export default function Home() {
   const propertyTypeMap = {
     'single-wide': ['single wide', 'single-wide', 'singlewide', 'single'],
     'double-wide': ['double wide', 'double-wide', 'doublewide', 'double'],
-    'modular': ['modular'],
-    'land-home': ['land & home', 'land and home', 'land-home', 'land_home', 'land']
+    'modular': ['modular']
   }
 
   // Reset page to 1 when changing type tabs
@@ -51,18 +50,18 @@ export default function Home() {
 
   // FETCH HOMES FROM BACKEND API
   useEffect(() => {
+    let isMounted = true
+
     const fetchFeaturedHomes = async () => {
       setLoading(true)
       try {
-        const url = `${API_BASE}/homes?page=${currentPage}&limit=12`
+        const url = `${API_BASE}/homes?page=${currentPage}&limit=8`
         
-        // Headers and keepalive prevent QUIC / HTTP3 protocol drops
         const res = await fetch(url, {
           method: 'GET',
           headers: {
             'Accept': 'application/json',
           },
-          keepalive: true,
         })
         
         if (!res.ok) {
@@ -71,10 +70,11 @@ export default function Home() {
 
         const data = await res.json()
         
-        // Extract array from paginated response or plain array
+        if (!isMounted) return
+
         let homesArray = Array.isArray(data) ? data : (data.data || [])
 
-        // Client-side filtering fallback for categories
+        // Filter homes based on active tab
         if (propertyType !== 'all') {
           const validKeywords = propertyTypeMap[propertyType] || []
           homesArray = homesArray.filter((home) => {
@@ -103,12 +103,17 @@ export default function Home() {
 
       } catch (err) {
         console.error('Error fetching homes from backend API:', err)
-     } finally {
-        setLoading(false)
+        if (isMounted) setFeaturedHomes([])
+      } finally {
+        if (isMounted) setLoading(false)
       }
     }
 
     fetchFeaturedHomes()
+
+    return () => {
+      isMounted = false
+    }
   }, [propertyType, currentPage])
 
   const formatPrice = (home) => {
@@ -135,9 +140,10 @@ export default function Home() {
         <section className="relative rounded-[2.5rem] overflow-hidden min-h-[580px] sm:min-h-[640px] flex items-center p-6 sm:p-12 lg:p-16 shadow-lg border border-slate-200/50">
           <div className="absolute inset-0 z-0">
             <img
-              src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1800&q=85"
+              src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&q=75&auto=format"
               alt="Find Your Dream Home"
               className="w-full h-full object-cover"
+              loading="eager"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
           </div>
@@ -204,16 +210,17 @@ export default function Home() {
               </h2>
             </div>
             <p className="text-xs sm:text-sm text-slate-500 max-w-md leading-relaxed">
-              We listen to your needs, understand your goals, and curate the best property matches just for you. Whether you're buying, selling, or investing, our team is here to guide you every step of the way.
+              We listen to your needs, understand your goals, and curate the best property matches just for you.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <div className="lg:col-span-6 relative rounded-[2rem] overflow-hidden min-h-[460px] group shadow-md border border-slate-200/60 bg-slate-900">
               <img
-                src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&q=80"
+                src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=75&auto=format"
                 alt="456 Oceanview Drive"
                 className="w-full h-full object-cover group-hover:scale-105 transition duration-700 opacity-95"
+                loading="lazy"
               />
 
               <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-2.5 rounded-full cursor-pointer hover:bg-white transition text-slate-700 shadow-sm">
@@ -250,36 +257,16 @@ export default function Home() {
 
             <div className="lg:col-span-6 grid grid-cols-2 gap-4">
               {[
-                { img: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&q=80', alt: 'Kitchen' },
-                { img: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=600&q=80', alt: 'Modern Exterior' },
-                { img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&q=80', alt: 'Bathroom' },
-                { img: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=600&q=80', alt: 'Dining Area' },
+                { img: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=500&q=70&auto=format', alt: 'Kitchen' },
+                { img: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=500&q=70&auto=format', alt: 'Modern Exterior' },
+                { img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&q=70&auto=format', alt: 'Bathroom' },
+                { img: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=500&q=70&auto=format', alt: 'Dining Area' },
               ].map((item, idx) => (
                 <div key={idx} className="relative rounded-[1.5rem] overflow-hidden h-52 group shadow-sm bg-slate-100">
-                  <img src={item.img} alt={item.alt} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                  <img src={item.img} alt={item.alt} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
                 </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* ABOUT US BANNER */}
-        <section className="bg-[#1A1D20] rounded-[2.5rem] overflow-hidden text-white grid grid-cols-1 lg:grid-cols-12 shadow-xl border border-slate-800">
-          <div className="lg:col-span-6 p-8 sm:p-12 lg:p-14 flex flex-col justify-center space-y-4">
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">About Us</h2>
-            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-md font-light">
-              At Nexora Realty, we believe finding the right home is about more than just property — it's about lifestyle, comfort, and the future.
-            </p>
-            <p className="text-slate-400 text-xs sm:text-sm leading-relaxed max-w-md font-light">
-              Our experienced agents provide personalized service, local expertise, and trusted guidance to make your real estate journey smooth and successful.
-            </p>
-          </div>
-          <div className="lg:col-span-6 h-64 lg:h-auto min-h-[320px]">
-            <img
-              src="https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=900&q=80"
-              alt="Our Happy Clients"
-              className="w-full h-full object-cover"
-            />
           </div>
         </section>
 
@@ -288,7 +275,7 @@ export default function Home() {
           <div className="text-center space-y-5">
             <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20]">Property Showcase</h2>
 
-            {/* House Type Filter Tab Bar */}
+            {/* Filter Tab Bar (Without Land & Home) */}
             <div className="flex justify-center">
               <div className="inline-flex flex-wrap justify-center items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-full text-xs font-semibold text-slate-600 shadow-inner">
                 {[
@@ -296,7 +283,6 @@ export default function Home() {
                   { id: 'single-wide', label: 'Single Wide' },
                   { id: 'double-wide', label: 'Double Wide' },
                   { id: 'modular', label: 'Modular' },
-                 
                 ].map((item) => (
                   <button
                     key={item.id}
@@ -344,9 +330,10 @@ export default function Home() {
                       <img
                         src={
                           getImageUrl(home.image || home.featured_image || (home.images && home.images[0])) ||
-                          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=600&q=80'
+                          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=500&q=70&auto=format'
                         }
                         alt={home.title || home.location || 'Property Image'}
+                        loading="lazy"
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                       />
                     </div>
