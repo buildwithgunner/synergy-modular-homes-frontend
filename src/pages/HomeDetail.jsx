@@ -23,18 +23,24 @@ export default function HomeDetail() {
         const res = await fetch(`${API_BASE}/homes/${id}`)
         if (!res.ok) throw new Error('Home not found')
         const data = await res.json()
-        setHome(data)
 
-        const images = []
-        if (data.image) images.push(getImageUrl(data.image))
-        if (Array.isArray(data.images)) {
+        // Construct complete gallery list safely
+        const rawImages = []
+
+        if (Array.isArray(data.images) && data.images.length > 0) {
           data.images.forEach((img) => {
             const url = getImageUrl(img)
-            if (url && !images.includes(url)) images.push(url)
+            if (url) rawImages.push(url)
           })
+        } else if (data.image) {
+          const mainUrl = getImageUrl(data.image)
+          if (mainUrl) rawImages.push(mainUrl)
         }
-        setMainImage(images[0] || '')
-        setHome((prev) => ({ ...prev, gallery: images }))
+
+        const gallery = rawImages.length > 0 ? rawImages : [getImageUrl(data.image)]
+
+        setHome({ ...data, gallery })
+        setMainImage(gallery[0] || '')
       } catch (err) {
         console.error(err)
         setHome(null)
@@ -66,7 +72,7 @@ export default function HomeDetail() {
     )
   }
 
-  const gallery = home.gallery || (home.image ? [getImageUrl(home.image)] : [])
+  const gallery = home.gallery || []
   const price = Number(home.price_min || home.price || 0)
   const downPaymentPercent = 10
   const downPayment = Math.round(price * (downPaymentPercent / 100))
@@ -102,6 +108,9 @@ export default function HomeDetail() {
     heating: 'Central',
   }
 
+  // Active gallery index for counter display
+  const activeIndex = gallery.indexOf(mainImage) >= 0 ? gallery.indexOf(mainImage) : 0
+
   return (
     <div className="min-h-screen bg-[#f8f7f4] overflow-x-hidden">
       <Header />
@@ -121,7 +130,7 @@ export default function HomeDetail() {
             <div>
               <div
                 className="relative rounded-2xl overflow-hidden bg-slate-200 cursor-pointer shadow-sm"
-                onClick={() => openLightbox(Math.max(0, gallery.indexOf(mainImage)))}
+                onClick={() => openLightbox(activeIndex)}
               >
                 <img
                   src={mainImage || getImageUrl(home.image)}
@@ -130,7 +139,7 @@ export default function HomeDetail() {
                 />
                 {gallery.length > 0 && (
                   <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-black/60 text-white text-xs font-medium px-3 py-1 rounded-full">
-                    {Math.max(1, gallery.indexOf(mainImage) + 1)} / {gallery.length}
+                    {activeIndex + 1} / {gallery.length}
                   </div>
                 )}
               </div>
@@ -146,7 +155,7 @@ export default function HomeDetail() {
                         mainImage === img ? 'border-emerald-700' : 'border-transparent'
                       }`}
                     >
-                      <img src={img} alt="" className="w-full h-full object-cover" />
+                      <img src={img} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
                     </button>
                   ))}
                 </div>
@@ -229,7 +238,7 @@ export default function HomeDetail() {
             )}
           </div>
 
-          {/* RIGHT COLUMN (sticky only on large screens) */}
+          {/* RIGHT COLUMN */}
           <div className="lg:col-span-2">
             <div className="space-y-4 sm:space-y-5 lg:sticky lg:top-24">
               {/* Price Card */}
@@ -248,7 +257,6 @@ export default function HomeDetail() {
                 </p>
 
                 <div className="space-y-3">
-                  {/* ✅ Updated button - goes to the new inquiry form */}
                   <Link
                     to={`/user/inquiries/new?home_id=${home.id}`}
                     className="flex items-center justify-between w-full bg-emerald-800 hover:bg-emerald-900 text-white font-semibold py-3.5 px-5 rounded-xl transition text-sm sm:text-base"
