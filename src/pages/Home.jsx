@@ -1,464 +1,281 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import Header from '../components/Header'
-import LoginRequiredModal from '../components/LoginRequiredModal'
-import InquiryModal from '../components/InquiryModal'
-import { getImageUrl } from '../utils/image'
+import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
+import { 
+  Building, 
+  MapPin, 
+  DollarSign, 
+  ArrowRight, 
+  Search, 
+  Heart, 
+  Star, 
+  Check, 
+  Bed, 
+  Bath, 
+  Maximize, 
+  ChevronLeft, 
+  ChevronRight, 
+  Loader2 
+} from 'lucide-react'
 
-const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
-
-export default function Home() {
-  const navigate = useNavigate()
+const Home = () => {
   const [featuredHomes, setFeaturedHomes] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedHome, setSelectedHome] = useState(null)
-
-  // House Type Filter State ('all' | 'single-wide' | 'double-wide' | 'modular')
+  const [error, setError] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
   const [propertyType, setPropertyType] = useState('all')
 
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1)
-  const [lastPage, setLastPage] = useState(1)
-
-  const [showLoginModal, setShowLoginModal] = useState(false)
-  const [redirectPath, setRedirectPath] = useState('/pre-approved')
-
-  const isLoggedIn = !!localStorage.getItem('token')
-
-  const handleProtectedClick = (path) => {
-    if (isLoggedIn) {
-      navigate(path)
-    } else {
-      setRedirectPath(path)
-      setShowLoginModal(true)
-    }
+  // Robust Price Formatting Helper
+  const formatPrice = (price) => {
+    if (price === null || price === undefined) return 'Call for Price'
+    const numericValue = typeof price === 'number' 
+      ? price 
+      : parseFloat(String(price).replace(/[^0-9.-]+/g, ''))
+    
+    if (isNaN(numericValue)) return 'Call for Price'
+    
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    }).format(numericValue)
   }
 
-  // Helper dictionary to filter client-side as fallback
-  const propertyTypeMap = {
-    'single-wide': ['single wide', 'single-wide', 'singlewide', 'single'],
-    'double-wide': ['double wide', 'double-wide', 'doublewide', 'double'],
-    'modular': ['modular']
-  }
-
-  // Reset page to 1 when changing category tabs
-  const handleTypeChange = (typeId) => {
-    setPropertyType(typeId)
+  // Synchronized Filter Change
+  const handleTypeChange = (newType) => {
+    if (newType === propertyType) return
+    setPropertyType(newType)
     setCurrentPage(1)
   }
 
-  // FETCH HOMES FROM BACKEND API
   useEffect(() => {
-    let isMounted = true
+    const controller = new AbortController()
 
     const fetchFeaturedHomes = async () => {
       setLoading(true)
+      setError(null)
       try {
-        // Construct query parameters
-        let url = `${API_BASE}/homes?page=${currentPage}&limit=8`
-        if (propertyType !== 'all') {
-          url += `&type=${propertyType}`
-        }
-
-        const res = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
+        const queryParams = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: '8',
+          ...(propertyType !== 'all' && { type: propertyType })
         })
 
-        if (!res.ok) {
-          throw new Error(`API HTTP Error: ${res.status}`)
+        const response = await fetch(`/api/homes/featured?${queryParams}`, {
+          signal: controller.signal
+        })
+
+        if (!response.ok) {
+          throw new Error(`Failed to load homes (Status: ${response.status})`)
         }
 
-        const data = await res.json()
-
-        if (!isMounted) return
-
+        const data = await response.json()
+        
         let homesArray = Array.isArray(data) ? data : (data.data || [])
+        let lastPage = data.last_page || data.totalPages || 1
 
-        // Fallback filter if backend returns all records despite query parameter
+        // Handle Fallback Client-Side Filtering cleanly
         if (propertyType !== 'all' && homesArray.length > 0) {
-          const validKeywords = propertyTypeMap[propertyType] || []
-          const filtered = homesArray.filter((home) => {
-            const rawType = (
-              home.type ||
-              home.category ||
-              home.property_type ||
-              home.title ||
-              ''
-            ).toLowerCase()
-
-            return validKeywords.some((keyword) => rawType.includes(keyword))
-          })
-
-          // Only apply client filter if it didn't reduce output to empty set
+          const filtered = homesArray.filter(
+            home => home.type?.toLowerCase() === propertyType.toLowerCase()
+          )
           if (filtered.length > 0) {
             homesArray = filtered
+            // Adjust page ceiling if client-side filtering drops item counts
+            lastPage = Math.max(1, Math.ceil(filtered.length / 8))
           }
         }
 
         setFeaturedHomes(homesArray)
-
-        // Set pagination metadata
-        if (data.last_page) setLastPage(data.last_page)
-        else if (data.meta?.last_page) setLastPage(data.meta.last_page)
-        else setLastPage(1)
-
+        setTotalPages(lastPage)
       } catch (err) {
-        console.error('Error fetching homes from backend API:', err)
-        if (isMounted) setFeaturedHomes([])
+        if (err.name !== 'AbortError') {
+          console.error('Error fetching homes:', err)
+          setError('Unable to load featured homes at this time.')
+        }
       } finally {
-        if (isMounted) setLoading(false)
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
       }
     }
 
     fetchFeaturedHomes()
 
     return () => {
-      isMounted = false
+      controller.abort()
     }
   }, [propertyType, currentPage])
 
-  const formatPrice = (home) => {
-    if (!home) return '$0'
-    const symbol = home.currency === 'GBP' ? '£' : '$'
-    if (home.price_min && home.price_max) {
-      return `${symbol}${Number(home.price_min).toLocaleString()} – ${symbol}${Number(home.price_max).toLocaleString()}`
-    }
-    if (home.price_min) {
-      return `From ${symbol}${Number(home.price_min).toLocaleString()}`
-    }
-    const amount = home.price || home.price_max || 0
-    return `${symbol}${Number(amount).toLocaleString()}`
-  }
-
   return (
-    <div className="min-h-screen bg-[#F7F7F6] text-[#222222] font-sans selection:bg-[#C9945B] selection:text-white">
-      {/* HEADER */}
-      <Header />
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 space-y-16">
-
-        {/* HERO SECTION */}
-        <section className="relative rounded-[2.5rem] overflow-hidden min-h-[580px] sm:min-h-[640px] flex items-center p-6 sm:p-12 lg:p-16 shadow-lg border border-slate-200/50">
-          <div className="absolute inset-0 z-0">
-            <img
-              src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&q=75&auto=format"
-              alt="Find Your Dream Home"
-              className="w-full h-full object-cover"
-              loading="eager"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-          </div>
-
-          <div className="relative z-10 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-            <div className="lg:col-span-7 space-y-6">
-              <h1 className="text-4xl sm:text-6xl font-extrabold text-white leading-[1.1] tracking-tight">
-                Find Your Dream <br />
-                Home Today
-              </h1>
-              <p className="text-slate-200 text-sm sm:text-base max-w-md font-light leading-relaxed">
-                Partner with our local experts who are dedicated to helping you find the perfect property for your lifestyle.
-              </p>
-
-              <div className="flex flex-wrap gap-4 pt-2">
-                <button
-                  onClick={() => navigate('/homes')}
-                  className="bg-[#C9945B] hover:bg-[#b58149] text-white text-sm font-semibold px-7 py-3.5 rounded-full transition shadow-md"
-                >
-                  Explore Homes
-                </button>
-                <button
-                  onClick={() => navigate('/about')}
-                  className="border border-white/40 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white text-sm font-semibold px-7 py-3.5 rounded-full transition"
-                >
-                  Learn More
-                </button>
-              </div>
-            </div>
-
-            <div className="lg:col-span-5 flex justify-end">
-              <div className="bg-white/95 backdrop-blur-xl rounded-[2rem] p-7 w-full max-w-sm shadow-2xl text-slate-800 border border-white/40">
-                <h3 className="text-2xl font-bold text-[#1A1D20] mb-2">Who We Are?</h3>
-                <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-                  We offer a range of services including buying, selling, and property management.
-                </p>
-
-                <div className="grid grid-cols-3 gap-2 text-center border-t border-slate-100 pt-5">
-                  <div>
-                    <span className="block text-xl font-extrabold text-[#C9945B]">100+</span>
-                    <span className="text-[10px] text-slate-400 font-semibold tracking-wide">Premium Homes</span>
-                  </div>
-                  <div>
-                    <span className="block text-xl font-extrabold text-[#C9945B]">600+</span>
-                    <span className="text-[10px] text-slate-400 font-semibold tracking-wide">Agents Network</span>
-                  </div>
-                  <div>
-                    <span className="block text-xl font-extrabold text-[#C9945B]">3K+</span>
-                    <span className="text-[10px] text-slate-400 font-semibold tracking-wide">Happy Clients</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* GALLERY SECTION */}
-        <section className="space-y-8">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
-            <div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20] tracking-tight">
-                Discover Your Perfect <br />
-                <span className="text-[#C9945B]">Property Match</span>
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-md leading-relaxed">
-              We listen to your needs, understand your goals, and curate the best property matches just for you.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-6 relative rounded-[2rem] overflow-hidden min-h-[460px] group shadow-md border border-slate-200/60 bg-slate-900">
-              <img
-                src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=75&auto=format"
-                alt="456 Oceanview Drive"
-                className="w-full h-full object-cover group-hover:scale-105 transition duration-700 opacity-95"
-                loading="lazy"
-              />
-
-              <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-2.5 rounded-full cursor-pointer hover:bg-white transition text-slate-700 shadow-sm">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </div>
-
-              <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-md rounded-[1.5rem] p-5 shadow-xl border border-white/30 flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-black text-[#C9945B] tracking-tight mb-0.5">$1,250,000</div>
-                  <div className="text-xs font-medium text-slate-400">456 Oceanview Drive,<br />Malibu, CA 90265</div>
-                </div>
-
-                <div className="flex items-center gap-4 text-center border-l pl-5 border-slate-200 text-slate-700">
-                  <div>
-                    <div className="text-xs font-bold">4</div>
-                    <div className="text-[10px] text-slate-400">Beds</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold">3</div>
-                    <div className="text-[10px] text-slate-400">Baths</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold">2</div>
-                    <div className="text-[10px] text-slate-400">Garage</div>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-[#C9945B] text-white flex items-center justify-center font-bold text-xs ml-1 shadow">
-                    ↗
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="lg:col-span-6 grid grid-cols-2 gap-4">
-              {[
-                { img: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=500&q=70&auto=format', alt: 'Kitchen' },
-                { img: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=500&q=70&auto=format', alt: 'Modern Exterior' },
-                { img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&q=70&auto=format', alt: 'Bathroom' },
-                { img: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=500&q=70&auto=format', alt: 'Dining Area' },
-              ].map((item, idx) => (
-                <div key={idx} className="relative rounded-[1.5rem] overflow-hidden h-52 group shadow-sm bg-slate-100">
-                  <img
-                    src={item.img}
-                    alt={item.alt}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* PROPERTY SHOWCASE */}
-        <section className="space-y-8" id="showcase">
-          <div className="text-center space-y-5">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20]">Property Showcase</h2>
-
-            {/* Filter Tab Bar */}
-            <div className="flex justify-center">
-              <div className="inline-flex flex-wrap justify-center items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-full text-xs font-semibold text-slate-600 shadow-inner">
-                {[
-                  { id: 'all', label: 'All Types' },
-                  { id: 'single-wide', label: 'Single Wide' },
-                  { id: 'double-wide', label: 'Double Wide' },
-                  { id: 'modular', label: 'Modular' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleTypeChange(item.id)}
-                    className={`px-5 py-2 rounded-full transition-all duration-200 ${
-                      propertyType === item.id
-                        ? 'bg-[#C9945B] text-white shadow-md font-bold'
-                        : 'hover:text-slate-900 hover:bg-slate-300/50'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Grid Render Logic */}
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white rounded-3xl p-3 border border-slate-100 animate-pulse space-y-3">
-                  <div className="h-44 bg-slate-200 rounded-2xl" />
-                  <div className="h-4 bg-slate-200 rounded w-1/2" />
-                  <div className="h-3 bg-slate-200 rounded w-3/4" />
-                </div>
-              ))}
-            </div>
-          ) : featuredHomes.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-3xl border border-slate-200/60 max-w-lg mx-auto shadow-sm">
-              <p className="text-sm font-semibold text-slate-700">No properties available in this category.</p>
-              <p className="text-xs text-slate-400 mt-1">Try selecting another house type option above.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredHomes.map((home) => (
-                <div
-                  key={home.id || home._id}
-                  onClick={() => navigate(`/homes/${home.id}`)}
-                  className="bg-white rounded-[1.8rem] p-3 border border-slate-200/60 shadow-sm hover:shadow-xl transition duration-300 group cursor-pointer flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="h-48 rounded-[1.2rem] overflow-hidden relative mb-3 bg-slate-100">
-                      <img
-                        src={
-                          getImageUrl(home.image || home.featured_image || (home.images && home.images[0])) ||
-                          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=500&q=70&auto=format'
-                        }
-                        alt={home.title || home.location || 'Property Image'}
-                        loading="lazy"
-                        decoding="async"
-                        fetchPriority="low"
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                      />
-                    </div>
-
-                    <div className="px-2 pb-1 space-y-1">
-                      <h3 className="font-bold text-[#1A1D20] text-sm truncate">
-                        {home.title || home.location || home.address}
-                      </h3>
-
-                      <div className="text-[11px] text-slate-400 font-medium">
-                        {home.bedrooms || home.beds || 0} Beds &nbsp;|&nbsp; {home.bathrooms || home.baths || 0} Baths &nbsp;|&nbsp; {home.living_area_min || home.sqft || '—'} Sq Ft
-                      </div>
-
-                      <div className="text-sm font-extrabold text-[#C9945B] pt-1">
-                        {formatPrice(home)}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-4 mt-2 border-t border-slate-100 px-1">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        navigate(`/homes/${home.id}`)
-                      }}
-                      className="w-full py-2 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition"
-                    >
-                      View Details
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedHome(home)
-                      }}
-                      className="w-full py-2 rounded-xl text-xs font-semibold bg-[#C9945B] hover:bg-[#b58149] text-white shadow-sm transition"
-                    >
-                      Interested
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* PAGINATION CONTROLS */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200/60">
-            <span className="text-xs font-medium text-slate-500">
-              Showing Page <strong className="text-slate-800">{currentPage}</strong> of <strong className="text-slate-800">{lastPage}</strong>
-            </span>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                disabled={currentPage <= 1 || loading}
-                onClick={() => {
-                  setCurrentPage((prev) => Math.max(prev - 1, 1))
-                  document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })
-                }}
-                className="px-5 py-2 rounded-full text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
-              >
-                ← Previous
-              </button>
-
-              <button
-                type="button"
-                disabled={currentPage >= lastPage || loading}
-                onClick={() => {
-                  setCurrentPage((prev) => prev + 1)
-                  document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })
-                }}
-                className="px-6 py-2 rounded-full text-xs font-bold bg-[#1A1D20] text-white hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed transition shadow-md"
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Protected Feature Triggers */}
-        <div className="text-center pt-8 border-t border-slate-200/60 flex flex-wrap justify-center gap-4">
-          <button
-            onClick={() => handleProtectedClick('/pre-approved')}
-            className="text-xs font-semibold text-slate-500 hover:text-[#C9945B] transition"
-          >
-            Get Pre-Approved →
-          </button>
-          <button
-            onClick={() => handleProtectedClick('/book-appointment')}
-            className="text-xs font-semibold text-slate-500 hover:text-[#C9945B] transition"
-          >
-            Book Appointment →
-          </button>
+    <div className="min-h-screen bg-slate-50">
+      {/* Hero Section */}
+      <section className="relative bg-slate-900 text-white py-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <img 
+            src="https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&q=80" 
+            alt="Hero Background" 
+            className="w-full h-full object-cover"
+          />
         </div>
-      </main>
+        <div className="relative max-w-7xl mx-auto text-center">
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
+            Find Your Dream Manufactured Home
+          </h1>
+          <p className="text-lg md:text-xl text-slate-300 max-w-3xl mx-auto mb-10">
+            Discover quality single-wides, double-wides, and modular homes built for modern living at affordable prices.
+          </p>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <Link 
+              to="/homes" 
+              className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors"
+            >
+              Browse Inventory <ArrowRight className="ml-2 h-5 w-5" />
+            </Link>
+            <Link 
+              to="/contact" 
+              className="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-medium border border-slate-700 transition-colors"
+            >
+              Contact Sales
+            </Link>
+          </div>
+        </div>
+      </section>
 
-      {/* FOOTER */}
-      <footer className="bg-[#1A1D20] text-slate-400 py-8 text-center text-xs border-t border-slate-800">
-        <p>© {new Date().getFullYear()} Nexora Realty. All rights reserved.</p>
-      </footer>
+      {/* Featured Homes Showcase */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10">
+          <div>
+            <h2 className="text-3xl font-bold text-slate-900">Featured Models</h2>
+            <p className="text-slate-600 mt-2">Explore our most popular floor plans and move-in ready homes.</p>
+          </div>
 
-      {/* MODALS */}
-      <InquiryModal
-        home={selectedHome}
-        onClose={() => setSelectedHome(null)}
-      />
+          {/* Property Type Filter */}
+          <div className="mt-6 md:mt-0 flex flex-wrap gap-2">
+            {['all', 'single-wide', 'double-wide', 'modular'].map((type) => (
+              <button
+                key={type}
+                onClick={() => handleTypeChange(type)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-colors capitalize ${
+                  propertyType === type
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                }`}
+              >
+                {type.replace('-', ' ')}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <LoginRequiredModal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        title="Account Required"
-        redirectTo={redirectPath}
-      />
+        {/* Home Listing Content */}
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+            <span className="ml-3 text-slate-600 font-medium">Loading properties...</span>
+          </div>
+        ) : error ? (
+          <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-lg text-center my-8">
+            {error}
+          </div>
+        ) : featuredHomes.length === 0 ? (
+          <div className="bg-white border border-slate-200 rounded-lg p-12 text-center my-8">
+            <Building className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-900">No properties found</h3>
+            <p className="text-slate-500 mt-1">Try selecting a different category filter.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {featuredHomes.map((home) => (
+                <div 
+                  key={home.id || home._id} 
+                  className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden hover:shadow-md transition-shadow flex flex-col"
+                >
+                  <div className="relative h-48 bg-slate-100">
+                    <img 
+                      src={home.image_url || home.thumbnail || 'https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&fit=crop&q=80'} 
+                      alt={home.title || home.name || 'Manufactured Home'} 
+                      className="w-full h-full object-cover"
+                    />
+                    <span className="absolute top-3 left-3 bg-slate-900/80 text-white text-xs px-2.5 py-1 rounded-full font-medium capitalize backdrop-blur-sm">
+                      {home.type || 'Home'}
+                    </span>
+                  </div>
+                  <div className="p-5 flex-1 flex flex-col justify-between">
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-lg mb-1 line-clamp-1">
+                        {home.title || home.name || `${home.beds || 3} Bed ${home.baths || 2} Bath Model`}
+                      </h3>
+                      <p className="text-slate-500 text-sm flex items-center mb-4">
+                        <MapPin className="h-4 w-4 mr-1 text-slate-400" />
+                        {home.location || 'Dealer Lot'}
+                      </p>
+                      
+                      <div className="grid grid-cols-3 gap-2 py-3 border-y border-slate-100 text-xs text-slate-600 mb-4">
+                        <div className="flex items-center">
+                          <Bed className="h-3.5 w-3.5 mr-1 text-slate-400" />
+                          <span>{home.beds || '-'} Beds</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Bath className="h-3.5 w-3.5 mr-1 text-slate-400" />
+                          <span>{home.baths || '-'} Baths</span>
+                        </div>
+                        <div className="flex items-center">
+                          <Maximize className="h-3.5 w-3.5 mr-1 text-slate-400" />
+                          <span>{home.sqft ? `${home.sqft} sqft` : '-'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between mt-2 pt-2">
+                      <div>
+                        <span className="text-xs text-slate-400 block">Starting at</span>
+                        <span className="text-lg font-bold text-blue-600">
+                          {formatPrice(home.price || home.price_min)}
+                        </span>
+                      </div>
+                      <Link 
+                        to={`/homes/${home.id || home._id}`}
+                        className="px-3 py-1.5 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-medium transition-colors"
+                      >
+                        Details
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-4 mt-12">
+                <button
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                  aria-label="Previous Page"
+                  className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <span className="text-sm text-slate-600 font-medium">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  aria-label="Next Page"
+                  className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-slate-50 transition-colors"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </section>
     </div>
   )
 }
+
+export default Home
