@@ -307,7 +307,7 @@ export default function Home() {
                   { id: 'all', label: 'All Types' },
                   { id: 'single-wide', label: 'Single Wide' },
                   { id: 'double-wide', label: 'Double Wide' },
-                  { id: 'double-wide', label: 'Tiny Homes' },
+                  { id: 'tiny-wides', label: 'Tiny Homes' },
                   { id: 'modular', label: 'Modular' },
                 ].map((item) => (
                   <button
