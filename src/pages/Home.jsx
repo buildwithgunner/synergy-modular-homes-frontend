@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Header from '../components/Header'
 import LoginRequiredModal from '../components/LoginRequiredModal'
 import InquiryModal from '../components/InquiryModal'
@@ -9,15 +9,15 @@ const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_U
 
 export default function Home() {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+
   const [featuredHomes, setFeaturedHomes] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedHome, setSelectedHome] = useState(null)
 
-  // House Type Filter State ('all' | 'single-wide' | 'double-wide' | 'modular')
-  const [propertyType, setPropertyType] = useState('all')
-
-  // Pagination State
-  const [currentPage, setCurrentPage] = useState(1)
+  // Read from URL so state is remembered
+  const propertyType = searchParams.get('type') || 'all'
+  const currentPage = Number(searchParams.get('page')) || 1
   const [lastPage, setLastPage] = useState(1)
 
   const [showLoginModal, setShowLoginModal] = useState(false)
@@ -38,13 +38,30 @@ export default function Home() {
   const propertyTypeMap = {
     'single-wide': ['single wide', 'single-wide', 'singlewide', 'single'],
     'double-wide': ['double wide', 'double-wide', 'doublewide', 'double'],
+    'tiny-wides': ['tiny', 'tiny home', 'tiny-home', 'tinywide', 'tiny wide'],
     'modular': ['modular']
   }
 
-  // Reset page to 1 when changing category tabs
+  // Change type → update URL
   const handleTypeChange = (typeId) => {
-    setPropertyType(typeId)
-    setCurrentPage(1)
+    const params = new URLSearchParams(searchParams)
+    if (typeId === 'all') {
+      params.delete('type')
+    } else {
+      params.set('type', typeId)
+    }
+    params.set('page', '1') // reset to page 1 when changing filter
+    setSearchParams(params)
+  }
+
+  // Change page → update URL
+  const goToPage = (page) => {
+    const params = new URLSearchParams(searchParams)
+    params.set('page', page.toString())
+    setSearchParams(params)
+
+    // Smooth scroll to showcase
+    document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })
   }
 
   // FETCH HOMES FROM BACKEND API
@@ -54,7 +71,6 @@ export default function Home() {
     const fetchFeaturedHomes = async () => {
       setLoading(true)
       try {
-        // Construct query parameters
         let url = `${API_BASE}/homes?page=${currentPage}&limit=8`
         if (propertyType !== 'all') {
           url += `&type=${propertyType}`
@@ -77,7 +93,7 @@ export default function Home() {
 
         let homesArray = Array.isArray(data) ? data : (data.data || [])
 
-        // Fallback filter if backend returns all records despite query parameter
+        // Client-side filter fallback
         if (propertyType !== 'all' && homesArray.length > 0) {
           const validKeywords = propertyTypeMap[propertyType] || []
           const filtered = homesArray.filter((home) => {
@@ -97,14 +113,12 @@ export default function Home() {
           }
         }
 
-        // ===== EMERGENCY CLIENT-SIDE PAGINATION =====
-        // Detect if backend is not paginating properly
+        // Emergency client-side pagination
         const isProbablyNotPaginated =
           Array.isArray(data) ||
           (!data.last_page && !data.meta?.last_page && homesArray.length > 8)
 
         if (isProbablyNotPaginated) {
-          // Backend dumped everything → force client-side pagination
           const perPage = 8
           const start = (currentPage - 1) * perPage
           const end = start + perPage
@@ -112,12 +126,10 @@ export default function Home() {
           setLastPage(Math.ceil(homesArray.length / perPage) || 1)
           homesArray = homesArray.slice(start, end)
         } else {
-          // Backend is paginating correctly
           if (data.last_page) setLastPage(data.last_page)
           else if (data.meta?.last_page) setLastPage(data.meta.last_page)
           else setLastPage(1)
         }
-        // ============================================
 
         setFeaturedHomes(homesArray)
 
@@ -151,7 +163,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-[#F7F7F6] text-[#222222] font-sans selection:bg-[#C9945B] selection:text-white">
-      {/* HEADER */}
       <Header />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 space-y-16">
@@ -418,10 +429,7 @@ export default function Home() {
               <button
                 type="button"
                 disabled={currentPage <= 1 || loading}
-                onClick={() => {
-                  setCurrentPage((prev) => Math.max(prev - 1, 1))
-                  document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })
-                }}
+                onClick={() => goToPage(Math.max(currentPage - 1, 1))}
                 className="px-5 py-2 rounded-full text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
               >
                 ← Previous
@@ -430,10 +438,7 @@ export default function Home() {
               <button
                 type="button"
                 disabled={currentPage >= lastPage || loading}
-                onClick={() => {
-                  setCurrentPage((prev) => prev + 1)
-                  document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })
-                }}
+                onClick={() => goToPage(currentPage + 1)}
                 className="px-6 py-2 rounded-full text-xs font-bold bg-[#1A1D20] text-white hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed transition shadow-md"
               >
                 Next →
@@ -459,12 +464,10 @@ export default function Home() {
         </div>
       </main>
 
-      {/* FOOTER */}
       <footer className="bg-[#1A1D20] text-slate-400 py-8 text-center text-xs border-t border-slate-800">
         <p>© {new Date().getFullYear()} Nexora Realty. All rights reserved.</p>
       </footer>
 
-      {/* MODALS */}
       <InquiryModal
         home={selectedHome}
         onClose={() => setSelectedHome(null)}
