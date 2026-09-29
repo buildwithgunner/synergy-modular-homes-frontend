@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
@@ -83,6 +83,15 @@ export default function AdminHomes() {
   const [galleryPreviews, setGalleryPreviews] = useState([])
   const navigate = useNavigate()
 
+  // ========== FILTERS ==========
+  const [filters, setFilters] = useState({
+    search: '',
+    type: 'All',
+    beds: 'All',
+    status: 'All',
+    maxPrice: '',
+  })
+
   const handleAuthError = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
@@ -123,16 +132,67 @@ export default function AdminHomes() {
     fetchHomes()
   }, [])
 
-  const openCreate = () => {
-    setEditingId(null)
-    setForm({ ...emptyForm, amenities: [], images: [], galleryFiles: [], imageFile: null })
+  // ========== CLIENT-SIDE FILTERING ==========
+  const filteredHomes = useMemo(() => {
+    return homes.filter((home) => {
+      const search = filters.search.toLowerCase()
+      const matchesSearch =
+        !search ||
+        (home.title || '').toLowerCase().includes(search) ||
+        (home.house_name || '').toLowerCase().includes(search) ||
+        (home.location || '').toLowerCase().includes(search)
+
+      const matchesType =
+        filters.type === 'All' ||
+        home.house_type === filters.type ||
+        home.type === filters.type
+
+      const matchesBeds =
+        filters.beds === 'All' || String(home.beds || 0) === filters.beds
+
+      const matchesStatus =
+        filters.status === 'All' || (home.status || 'available') === filters.status
+
+      const matchesPrice =
+        !filters.maxPrice ||
+        Number(home.price_min || home.price || 0) <= Number(filters.maxPrice)
+
+      return matchesSearch && matchesType && matchesBeds && matchesStatus && matchesPrice
+    })
+  }, [homes, filters])
+
+  // ========== MODAL HELPERS ==========
+  const cleanPreviews = () => {
+    if (imagePreview?.startsWith?.('blob:')) URL.revokeObjectURL(imagePreview)
+    galleryPreviews.forEach((src) => {
+      if (typeof src === 'string' && src.startsWith('blob:')) URL.revokeObjectURL(src)
+    })
     setImagePreview(null)
     setGalleryPreviews([])
+  }
+
+  const closeModal = () => {
+    cleanPreviews()
+    setShowModal(false)
+  }
+
+  const openCreate = () => {
+    cleanPreviews()
+    setEditingId(null)
+    setForm({
+      ...emptyForm,
+      specs: { ...emptyForm.specs },
+      amenities: [],
+      images: [],
+      galleryFiles: [],
+      imageFile: null,
+    })
     setNewAmenity('')
     setShowModal(true)
   }
 
   const openEdit = (home) => {
+    cleanPreviews()
     setEditingId(home.id)
     setForm({
       title: home.title || '',
@@ -214,9 +274,8 @@ export default function AdminHomes() {
 
   const removeGalleryPreview = (index) => {
     const preview = galleryPreviews[index]
-    if (preview && typeof preview === 'string' && preview.startsWith('blob:')) {
-      URL.revokeObjectURL(preview)
-    }
+    if (preview?.startsWith?.('blob:')) URL.revokeObjectURL(preview)
+
     setGalleryPreviews((prev) => prev.filter((_, i) => i !== index))
     setForm((prev) => {
       const existingCount = prev.images.length
@@ -321,7 +380,7 @@ export default function AdminHomes() {
         throw new Error(msg)
       }
 
-      setShowModal(false)
+      closeModal()
       await fetchHomes()
     } catch (err) {
       console.error(err)
@@ -358,6 +417,7 @@ export default function AdminHomes() {
 
   return (
     <div>
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-slate-900">Manage Homes</h1>
         <button
@@ -369,11 +429,82 @@ export default function AdminHomes() {
         </button>
       </div>
 
+      {/* ========== SEARCH & FILTER BAR ========== */}
+      <div className="bg-white rounded-2xl border p-4 mb-6 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex-1 min-w-[200px]">
+            <input
+              type="text"
+              placeholder="Search by title, house name or location..."
+              value={filters.search}
+              onChange={(e) => setFilters((p) => ({ ...p, search: e.target.value }))}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+          </div>
+
+          <select
+            value={filters.type}
+            onChange={(e) => setFilters((p) => ({ ...p, type: e.target.value }))}
+            className="px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white"
+          >
+            <option value="All">All Types</option>
+            {houseTypeOptions.map((t) => (
+              <option key={t} value={t}>{t}</option>
+            ))}
+          </select>
+
+          <select
+            value={filters.beds}
+            onChange={(e) => setFilters((p) => ({ ...p, beds: e.target.value }))}
+            className="px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white"
+          >
+            <option value="All">All Beds</option>
+            <option value="1">1 Bed</option>
+            <option value="2">2 Beds</option>
+            <option value="3">3 Beds</option>
+            <option value="4">4 Beds</option>
+            <option value="5">5+ Beds</option>
+          </select>
+
+          <select
+            value={filters.status}
+            onChange={(e) => setFilters((p) => ({ ...p, status: e.target.value }))}
+            className="px-3 py-2 text-sm border border-slate-300 rounded-lg bg-white"
+          >
+            <option value="All">All Status</option>
+            {statusOptions.map((s) => (
+              <option key={s} value={s}>{s}</option>
+            ))}
+          </select>
+
+          <input
+            type="number"
+            placeholder="Max price"
+            value={filters.maxPrice}
+            onChange={(e) => setFilters((p) => ({ ...p, maxPrice: e.target.value }))}
+            className="w-32 px-3 py-2 text-sm border border-slate-300 rounded-lg"
+          />
+
+          {(filters.search || filters.type !== 'All' || filters.beds !== 'All' || filters.status !== 'All' || filters.maxPrice) && (
+            <button
+              type="button"
+              onClick={() => setFilters({ search: '', type: 'All', beds: 'All', status: 'All', maxPrice: '' })}
+              className="text-xs text-slate-500 hover:text-red-600 underline"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Table */}
       {loading ? (
         <div className="bg-white rounded-2xl border p-8 text-center text-slate-500">Loading...</div>
-      ) : homes.length === 0 ? (
+      ) : filteredHomes.length === 0 ? (
         <div className="bg-white rounded-2xl border p-8 text-center text-slate-500">
-          No homes yet. Click “+ Add Home” to create the first one.
+          {homes.length === 0
+            ? 'No homes yet. Click “+ Add Home” to create the first one.'
+            : 'No homes match your filters.'}
         </div>
       ) : (
         <div className="bg-white rounded-2xl border overflow-hidden">
@@ -391,7 +522,7 @@ export default function AdminHomes() {
                 </tr>
               </thead>
               <tbody>
-                {homes.map((home) => (
+                {filteredHomes.map((home) => (
                   <tr key={home.id} className="border-b last:border-0 hover:bg-slate-50">
                     <td className="px-4 py-3 font-medium">{home.title || '—'}</td>
                     <td className="px-4 py-3">{home.house_type || home.type || '—'}</td>
@@ -447,7 +578,7 @@ export default function AdminHomes() {
           <div className="bg-white rounded-2xl w-full max-w-4xl my-8 shadow-2xl">
             <div className="flex items-center justify-between border-b px-6 py-4">
               <h2 className="text-xl font-bold">{editingId ? 'Edit Home' : 'Add New Home'}</h2>
-              <button type="button" onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-600 text-2xl">
+              <button type="button" onClick={closeModal} className="text-slate-400 hover:text-slate-600 text-2xl">
                 ×
               </button>
             </div>
@@ -654,7 +785,7 @@ export default function AdminHomes() {
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 rounded-xl border text-sm font-medium">Cancel</button>
+                <button type="button" onClick={closeModal} className="px-5 py-2.5 rounded-xl border text-sm font-medium">Cancel</button>
                 <button type="submit" disabled={saving} className="bg-red-600 hover:bg-red-700 text-white px-6 py-2.5 rounded-xl text-sm font-medium disabled:opacity-50">
                   {saving ? 'Saving...' : editingId ? 'Update Home' : 'Create Home'}
                 </button>
