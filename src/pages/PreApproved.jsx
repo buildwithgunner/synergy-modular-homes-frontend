@@ -10,6 +10,7 @@ export default function PreApproved() {
     middle_name: '',
     last_name: '',
     dob: '',
+    sex: '',
     ssn: '',
     email: '',
     cell_phone: '',
@@ -61,7 +62,6 @@ export default function PreApproved() {
     e.preventDefault()
     setSubmitting(true)
 
-    // Pass proof_of_income as an array directly; Axios handles JSON serialization
     const payload = {
       ...form,
       proof_of_income: form.proof_of_income || [],
@@ -134,11 +134,21 @@ export default function PreApproved() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-5">
               <div>
                 <label className="block text-sm font-medium mb-1">Date of Birth *</label>
                 <input type="date" name="dob" required value={form.dob} onChange={handleChange}
                   className="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-600 outline-none" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Sex / Gender *</label>
+                <select name="sex" required value={form.sex} onChange={handleChange}
+                  className="w-full border rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-blue-600 outline-none">
+                  <option value="">Select...</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="prefer_not_to_say">Prefer not to say</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Social Security Number *</label>
@@ -270,7 +280,7 @@ export default function PreApproved() {
             <div className="mb-5">
               <label className="block text-sm font-medium mb-2">Proof of Income (select all that apply)</label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {['W2', '1099', 'Cash', 'Bank Statements', '401k / IRA', 'Savings'].map((item) => (
+                {['W2', '1099', 'SSI', 'Cash', 'Bank Statements', '401k / IRA', 'Savings'].map((item) => (
                   <label key={item} className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
