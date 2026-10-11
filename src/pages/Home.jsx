@@ -379,8 +379,14 @@ export default function Home() {
 
                     <div className="px-2 pb-1 space-y-1">
                       <h3 className="font-bold text-[#1A1D20] text-sm truncate">
-                        {home.title || home.location || home.address}
+                        {home.title || 'Modular Home'}
                       </h3>
+
+                      <div className="text-xs text-slate-500 font-medium truncate">
+                        {home.address || home.location || 'Location upon request'}
+                        {home.city && `, ${home.city}`}
+                        {home.state && `, ${home.state}`}
+                      </div>
 
                       <div className="text-[11px] text-slate-400 font-medium">
                         {home.bedrooms || home.beds || 0} Beds &nbsp;|&nbsp; {home.bathrooms || home.baths || 0} Baths &nbsp;|&nbsp; {home.living_area_min || home.sqft || '—'} Sq Ft

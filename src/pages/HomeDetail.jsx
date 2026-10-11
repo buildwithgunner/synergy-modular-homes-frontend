@@ -1,490 +1,394 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
 import Header from '../components/Header'
-import LoginRequiredModal from '../components/LoginRequiredModal'
-import InquiryModal from '../components/InquiryModal'
+import SaveHomeButton from '../components/SaveHomeButton'
+import { useParams, Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { getImageUrl } from '../utils/image'
 
 const API_BASE = import.meta.env.VITE_API_URL || import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 
-export default function Home() {
-  const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
-
-  const [featuredHomes, setFeaturedHomes] = useState([])
+export default function HomeDetail() {
+  const { id } = useParams()
+  const [home, setHome] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [selectedHome, setSelectedHome] = useState(null)
+  const [mainImage, setMainImage] = useState('')
+  const [lightboxOpen, setLightboxOpen] = useState(false)
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [financeTab, setFinanceTab] = useState('financing')
+  const [termMonths, setTermMonths] = useState(36)
 
-  // Read from URL so state is remembered
-  const propertyType = searchParams.get('type') || 'all'
-  const currentPage = Number(searchParams.get('page')) || 1
-  const [lastPage, setLastPage] = useState(1)
-
-  const [showLoginModal, setShowLoginModal] = useState(false)
-  const [redirectPath, setRedirectPath] = useState('/pre-approved')
-
-  const isLoggedIn = !!localStorage.getItem('token')
-
-  const handleProtectedClick = (path) => {
-    if (isLoggedIn) {
-      navigate(path)
-    } else {
-      setRedirectPath(path)
-      setShowLoginModal(true)
-    }
-  }
-
-  // Helper dictionary to filter client-side as fallback
-  const propertyTypeMap = {
-    'single-wide': ['single wide', 'single-wide', 'singlewide', 'single'],
-    'double-wide': ['double wide', 'double-wide', 'doublewide', 'double'],
-    'tiny-wides': ['tiny', 'tiny home', 'tiny-home', 'tinywide', 'tiny wide'],
-    'modular': ['modular']
-  }
-
-  // Change type → update URL
-  const handleTypeChange = (typeId) => {
-    const params = new URLSearchParams(searchParams)
-    if (typeId === 'all') {
-      params.delete('type')
-    } else {
-      params.set('type', typeId)
-    }
-    params.set('page', '1') // reset to page 1 when changing filter
-    setSearchParams(params)
-  }
-
-  // Change page → update URL
-  const goToPage = (page) => {
-    const params = new URLSearchParams(searchParams)
-    params.set('page', page.toString())
-    setSearchParams(params)
-
-    // Smooth scroll to showcase
-    document.getElementById('showcase')?.scrollIntoView({ behavior: 'smooth' })
-  }
-
-  // FETCH HOMES FROM BACKEND API
   useEffect(() => {
-    let isMounted = true
-
-    const fetchFeaturedHomes = async () => {
-      setLoading(true)
+    const fetchHome = async () => {
       try {
-        let url = `${API_BASE}/homes?page=${currentPage}&limit=8`
-        if (propertyType !== 'all') {
-          url += `&type=${propertyType}`
-        }
-
-        const res = await fetch(url, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json',
-          },
-        })
-
-        if (!res.ok) {
-          throw new Error(`API HTTP Error: ${res.status}`)
-        }
-
+        setLoading(true)
+        const res = await fetch(`${API_BASE}/homes/${id}`)
+        if (!res.ok) throw new Error('Home not found')
         const data = await res.json()
 
-        if (!isMounted) return
+        // Construct complete gallery list safely
+        const rawImages = []
 
-        let homesArray = Array.isArray(data) ? data : (data.data || [])
-
-        // Client-side filter fallback
-        if (propertyType !== 'all' && homesArray.length > 0) {
-          const validKeywords = propertyTypeMap[propertyType] || []
-          const filtered = homesArray.filter((home) => {
-            const rawType = (
-              home.type ||
-              home.category ||
-              home.property_type ||
-              home.title ||
-              ''
-            ).toLowerCase()
-
-            return validKeywords.some((keyword) => rawType.includes(keyword))
+        if (Array.isArray(data.images) && data.images.length > 0) {
+          data.images.forEach((img) => {
+            const url = getImageUrl(img)
+            if (url) rawImages.push(url)
           })
-
-          if (filtered.length > 0) {
-            homesArray = filtered
-          }
+        } else if (data.image) {
+          const mainUrl = getImageUrl(data.image)
+          if (mainUrl) rawImages.push(mainUrl)
         }
 
-        // Emergency client-side pagination
-        const isProbablyNotPaginated =
-          Array.isArray(data) ||
-          (!data.last_page && !data.meta?.last_page && homesArray.length > 8)
+        const gallery = rawImages.length > 0 ? rawImages : [getImageUrl(data.image)]
 
-        if (isProbablyNotPaginated) {
-          const perPage = 8
-          const start = (currentPage - 1) * perPage
-          const end = start + perPage
-
-          setLastPage(Math.ceil(homesArray.length / perPage) || 1)
-          homesArray = homesArray.slice(start, end)
-        } else {
-          if (data.last_page) setLastPage(data.last_page)
-          else if (data.meta?.last_page) setLastPage(data.meta.last_page)
-          else setLastPage(1)
-        }
-
-        setFeaturedHomes(homesArray)
-
+        setHome({ ...data, gallery })
+        setMainImage(gallery[0] || '')
       } catch (err) {
-        console.error('Error fetching homes from backend API:', err)
-        if (isMounted) setFeaturedHomes([])
+        console.error(err)
+        setHome(null)
       } finally {
-        if (isMounted) setLoading(false)
+        setLoading(false)
       }
     }
+    fetchHome()
+  }, [id])
 
-    fetchFeaturedHomes()
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Header />
+        <div className="text-center py-20 text-slate-500">Loading home...</div>
+      </div>
+    )
+  }
 
-    return () => {
-      isMounted = false
-    }
-  }, [propertyType, currentPage])
+  if (!home) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <Header />
+        <div className="max-w-4xl mx-auto px-4 py-20 text-center">
+          <h1 className="text-2xl font-bold mb-4">Home Not Found</h1>
+          <Link to="/" className="text-blue-600 hover:underline">← Back to Homes</Link>
+        </div>
+      </div>
+    )
+  }
 
-  const formatPrice = (home) => {
-    if (!home) return '$0'
+  const gallery = home.gallery || []
+  const price = Number(home.price_min || home.price || 0)
+  const downPaymentPercent = 10
+  const downPayment = Math.round(price * (downPaymentPercent / 100))
+  const amortizedBalance = price - downPayment
+  const monthlyFinancing = termMonths > 0 ? Math.round(amortizedBalance / termMonths) : 0
+  const baseRent = Math.round(price * 0.012)
+  const equityBuilder = 50
+  const totalRentPayment = baseRent + equityBuilder
+
+  const openLightbox = (index) => {
+    setCurrentIndex(index)
+    setLightboxOpen(true)
+  }
+
+  const nextImage = () => setCurrentIndex((prev) => (prev + 1) % gallery.length)
+  const prevImage = () => setCurrentIndex((prev) => (prev - 1 + gallery.length) % gallery.length)
+
+  const formatPrice = () => {
     const symbol = home.currency === 'GBP' ? '£' : '$'
     if (home.price_min && home.price_max) {
       return `${symbol}${Number(home.price_min).toLocaleString()} – ${symbol}${Number(home.price_max).toLocaleString()}`
     }
-    if (home.price_min) {
-      return `From ${symbol}${Number(home.price_min).toLocaleString()}`
-    }
-    const amount = home.price || home.price_max || 0
-    return `${symbol}${Number(amount).toLocaleString()}`
+    return `${symbol}${price.toLocaleString()}`
   }
 
+  const features = Array.isArray(home.amenities) ? home.amenities : []
+  const specs = home.specs && typeof home.specs === 'object' ? home.specs : {
+    solar: 'None',
+    water: 'Municipal',
+    insulation: 'Standard',
+    toilet: 'Standard',
+    lofts: '0',
+    heating: 'Central',
+  }
+
+  // Active gallery index for counter display
+  const activeIndex = gallery.indexOf(mainImage) >= 0 ? gallery.indexOf(mainImage) : 0
+
   return (
-    <div className="min-h-screen bg-[#F7F7F6] text-[#222222] font-sans selection:bg-[#C9945B] selection:text-white">
+    <div className="min-h-screen bg-[#f8f7f4] overflow-x-hidden">
       <Header />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-20 space-y-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <Link
+          to="/"
+          className="inline-flex items-center text-sm text-slate-500 hover:text-slate-800 mb-5 sm:mb-6"
+        >
+          ← Back to listings
+        </Link>
 
-        {/* HERO SECTION */}
-        <section className="relative rounded-[2.5rem] overflow-hidden min-h-[580px] sm:min-h-[640px] flex items-center p-6 sm:p-12 lg:p-16 shadow-lg border border-slate-200/50">
-          <div className="absolute inset-0 z-0">
-            <img
-              src="https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=1200&q=75&auto=format"
-              alt="Find Your Dream Home"
-              className="w-full h-full object-cover"
-              loading="eager"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent" />
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+          {/* LEFT COLUMN */}
+          <div className="lg:col-span-3 space-y-6 sm:space-y-8">
+            {/* Gallery */}
+            <div>
+              <div
+                className="relative rounded-2xl overflow-hidden bg-slate-200 cursor-pointer shadow-sm"
+                onClick={() => openLightbox(activeIndex)}
+              >
+                <img
+                  src={mainImage || getImageUrl(home.image)}
+                  alt={home.title}
+                  className="w-full h-[280px] sm:h-[380px] lg:h-[460px] object-cover"
+                />
+                {gallery.length > 0 && (
+                  <div className="absolute bottom-3 left-3 sm:bottom-4 sm:left-4 bg-black/60 text-white text-xs font-medium px-3 py-1 rounded-full">
+                    {activeIndex + 1} / {gallery.length}
+                  </div>
+                )}
+              </div>
 
-          <div className="relative z-10 w-full grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
-            <div className="lg:col-span-7 space-y-6">
-              <h1 className="text-4xl sm:text-6xl font-extrabold text-white leading-[1.1] tracking-tight">
-                Find Your Dream <br />
-                Home Today
+              {gallery.length > 1 && (
+                <div className="flex gap-2 sm:gap-3 mt-3 sm:mt-4 overflow-x-auto pb-2 -mx-1 px-1">
+                  {gallery.map((img, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => setMainImage(img)}
+                      className={`flex-shrink-0 w-16 h-14 sm:w-20 sm:h-16 rounded-xl overflow-hidden border-2 transition ${
+                        mainImage === img ? 'border-emerald-700' : 'border-transparent'
+                      }`}
+                    >
+                      <img src={img} alt={`Thumbnail ${index + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Title & Info */}
+            <div>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 mb-3">
+                <span className="inline-block bg-amber-50 text-amber-800 text-xs font-semibold px-3 py-1 rounded-full">
+                  FOR SALE & RENT
+                </span>
+                <SaveHomeButton homeId={home.id} />
+              </div>
+
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-serif font-bold text-slate-900 leading-tight mb-2">
+                {home.title}
               </h1>
-              <p className="text-slate-200 text-sm sm:text-base max-w-md font-light leading-relaxed">
-                Partner with our local experts who are dedicated to helping you find the perfect property for your lifestyle.
+              <p className="text-slate-500 text-sm mb-4 sm:mb-6">
+                📍 {home.location || 'Location TBD'}
               </p>
 
-              <div className="flex flex-wrap gap-4 pt-2">
-                <button
-                  onClick={() => navigate('/homes')}
-                  className="bg-[#C9945B] hover:bg-[#b58149] text-white text-sm font-semibold px-7 py-3.5 rounded-full transition shadow-md"
-                >
-                  Explore Homes
-                </button>
-                <button
-                  onClick={() => navigate('/about')}
-                  className="border border-white/40 bg-white/10 backdrop-blur-md hover:bg-white/20 text-white text-sm font-semibold px-7 py-3.5 rounded-full transition"
-                >
-                  Learn More
-                </button>
-              </div>
-            </div>
-
-            <div className="lg:col-span-5 flex justify-end">
-              <div className="bg-white/95 backdrop-blur-xl rounded-[2rem] p-7 w-full max-w-sm shadow-2xl text-slate-800 border border-white/40">
-                <h3 className="text-2xl font-bold text-[#1A1D20] mb-2">Who We Are?</h3>
-                <p className="text-xs text-slate-500 mb-6 leading-relaxed">
-                  We offer a range of services including buying, selling, and property management.
-                </p>
-
-                <div className="grid grid-cols-3 gap-2 text-center border-t border-slate-100 pt-5">
-                  <div>
-                    <span className="block text-xl font-extrabold text-[#C9945B]">100+</span>
-                    <span className="text-[10px] text-slate-400 font-semibold tracking-wide">Premium Homes</span>
-                  </div>
-                  <div>
-                    <span className="block text-xl font-extrabold text-[#C9945B]">600+</span>
-                    <span className="text-[10px] text-slate-400 font-semibold tracking-wide">Agents Network</span>
-                  </div>
-                  <div>
-                    <span className="block text-xl font-extrabold text-[#C9945B]">3K+</span>
-                    <span className="text-[10px] text-slate-400 font-semibold tracking-wide">Happy Clients</span>
-                  </div>
+              <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:gap-8 text-sm text-slate-600 border-y border-slate-200 py-4">
+                <div className="text-center sm:text-left">
+                  <strong className="block sm:inline">{home.living_area_min || home.sqft || '—'}</strong>
+                  <span className="text-xs sm:text-sm text-slate-500"> sqft</span>
+                </div>
+                <div className="text-center sm:text-left">
+                  <strong className="block sm:inline">{home.beds || 0}</strong>
+                  <span className="text-xs sm:text-sm text-slate-500"> bed</span>
+                </div>
+                <div className="text-center sm:text-left">
+                  <strong className="block sm:inline">{home.baths || 0}</strong>
+                  <span className="text-xs sm:text-sm text-slate-500"> bath</span>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
 
-        {/* GALLERY SECTION */}
-        <section className="space-y-8">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
+            {/* About */}
             <div>
-              <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20] tracking-tight">
-                Discover Your Perfect <br />
-                <span className="text-[#C9945B]">Property Match</span>
-              </h2>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-md leading-relaxed">
-              We listen to your needs, understand your goals, and curate the best property matches just for you.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <div className="lg:col-span-6 relative rounded-[2rem] overflow-hidden min-h-[460px] group shadow-md border border-slate-200/60 bg-slate-900">
-              <img
-                src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&q=75&auto=format"
-                alt="456 Oceanview Drive"
-                className="w-full h-full object-cover group-hover:scale-105 transition duration-700 opacity-95"
-                loading="lazy"
-              />
-
-              <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md p-2.5 rounded-full cursor-pointer hover:bg-white transition text-slate-700 shadow-sm">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                </svg>
-              </div>
-
-              <div className="absolute bottom-6 left-6 right-6 bg-white/95 backdrop-blur-md rounded-[1.5rem] p-5 shadow-xl border border-white/30 flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-black text-[#C9945B] tracking-tight mb-0.5">$1,250,000</div>
-                  <div className="text-xs font-medium text-slate-400">456 Oceanview Drive,<br />Malibu, CA 90265</div>
-                </div>
-
-                <div className="flex items-center gap-4 text-center border-l pl-5 border-slate-200 text-slate-700">
-                  <div>
-                    <div className="text-xs font-bold">4</div>
-                    <div className="text-[10px] text-slate-400">Beds</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold">3</div>
-                    <div className="text-[10px] text-slate-400">Baths</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold">2</div>
-                    <div className="text-[10px] text-slate-400">Garage</div>
-                  </div>
-                  <div className="w-8 h-8 rounded-full bg-[#C9945B] text-white flex items-center justify-center font-bold text-xs ml-1 shadow">
-                    ↗
-                  </div>
-                </div>
-              </div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-3">About This Home</h2>
+              <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
+                {home.description || 'No description available.'}
+              </p>
             </div>
 
-            <div className="lg:col-span-6 grid grid-cols-2 gap-4">
-              {[
-                { img: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=500&q=70&auto=format', alt: 'Kitchen' },
-                { img: 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?w=500&q=70&auto=format', alt: 'Modern Exterior' },
-                { img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=500&q=70&auto=format', alt: 'Bathroom' },
-                { img: 'https://images.unsplash.com/photo-1600566753376-12c8ab7fb75b?w=500&q=70&auto=format', alt: 'Dining Area' },
-              ].map((item, idx) => (
-                <div key={idx} className="relative rounded-[1.5rem] overflow-hidden h-52 group shadow-sm bg-slate-100">
-                  <img
-                    src={item.img}
-                    alt={item.alt}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* PROPERTY SHOWCASE */}
-        <section className="space-y-8" id="showcase">
-          <div className="text-center space-y-5">
-            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#1A1D20]">Property Showcase</h2>
-
-            {/* Filter Tab Bar */}
-            <div className="flex justify-center">
-              <div className="inline-flex flex-wrap justify-center items-center gap-1.5 bg-slate-200/80 p-1.5 rounded-full text-xs font-semibold text-slate-600 shadow-inner">
-                {[
-                  { id: 'all', label: 'All Types' },
-                  { id: 'single-wide', label: 'Single Wide' },
-                  { id: 'double-wide', label: 'Double Wide' },
-                  { id: 'tiny-wides', label: 'Tiny Homes' },
-                  { id: 'modular', label: 'Modular' },
-                ].map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => handleTypeChange(item.id)}
-                    className={`px-5 py-2 rounded-full transition-all duration-200 ${
-                      propertyType === item.id
-                        ? 'bg-[#C9945B] text-white shadow-md font-bold'
-                        : 'hover:text-slate-900 hover:bg-slate-300/50'
-                    }`}
+            {/* Tech Specs */}
+            <div>
+              <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-3 sm:mb-4">Tech Specs</h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                {Object.entries(specs).map(([key, value]) => (
+                  <div
+                    key={key}
+                    className="bg-white border border-slate-100 rounded-2xl p-3 sm:p-4 text-center"
                   >
-                    {item.label}
-                  </button>
+                    <p className="text-[10px] sm:text-[11px] font-semibold text-slate-400 tracking-wider uppercase">
+                      {key.replace(/_/g, ' ')}
+                    </p>
+                    <p className="text-sm font-medium text-slate-800 mt-1">{String(value)}</p>
+                  </div>
                 ))}
               </div>
             </div>
+
+            {/* Amenities */}
+            {features.length > 0 && (
+              <div>
+                <h2 className="text-lg sm:text-xl font-bold text-slate-900 mb-3 sm:mb-4">Amenities</h2>
+                <div className="flex flex-wrap gap-2">
+                  {features.map((item) => (
+                    <span
+                      key={item}
+                      className="bg-white border border-slate-200 text-slate-700 text-xs sm:text-sm px-3 sm:px-4 py-1.5 rounded-full"
+                    >
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Grid Render Logic */}
-          {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="bg-white rounded-3xl p-3 border border-slate-100 animate-pulse space-y-3">
-                  <div className="h-44 bg-slate-200 rounded-2xl" />
-                  <div className="h-4 bg-slate-200 rounded w-1/2" />
-                  <div className="h-3 bg-slate-200 rounded w-3/4" />
+          {/* RIGHT COLUMN */}
+          <div className="lg:col-span-2">
+            <div className="space-y-4 sm:space-y-5 lg:sticky lg:top-24">
+              {/* Price Card */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+                <p className="text-xs font-semibold text-slate-400 tracking-wider mb-1">
+                  SALE / RENT
+                </p>
+                <div className="flex flex-wrap items-baseline gap-2 mb-1">
+                  <span className="text-2xl sm:text-3xl font-bold text-slate-900">
+                    {formatPrice()}
+                  </span>
+                  <span className="text-slate-400 text-sm">/ ${baseRent}/mo</span>
                 </div>
-              ))}
-            </div>
-          ) : featuredHomes.length === 0 ? (
-            <div className="text-center py-12 bg-white rounded-3xl border border-slate-200/60 max-w-lg mx-auto shadow-sm">
-              <p className="text-sm font-semibold text-slate-700">No properties available in this category.</p>
-              <p className="text-xs text-slate-400 mt-1">Try selecting another house type option above.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {featuredHomes.map((home) => (
-                <div
-                  key={home.id || home._id}
-                  onClick={() => navigate(`/homes/${home.id}`)}
-                  className="bg-white rounded-[1.8rem] p-3 border border-slate-200/60 shadow-sm hover:shadow-xl transition duration-300 group cursor-pointer flex flex-col justify-between"
-                >
-                  <div>
-                    <div className="h-48 rounded-[1.2rem] overflow-hidden relative mb-3 bg-slate-100">
-                      <img
-                        src={
-                          getImageUrl(home.image || home.featured_image || (home.images && home.images[0])) ||
-                          'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=500&q=70&auto=format'
-                        }
-                        alt={home.title || home.location || 'Property Image'}
-                        loading="lazy"
-                        decoding="async"
-                        fetchPriority="low"
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                      />
+                <p className="text-xs text-slate-500 mb-5">
+                  {downPaymentPercent}% down = ${downPayment.toLocaleString()} · {termMonths} months
+                </p>
+
+                <div className="space-y-3">
+                  <Link
+                    to={`/user/inquiries/new?home_id=${home.id}`}
+                    className="flex items-center justify-between w-full bg-emerald-800 hover:bg-emerald-900 text-white font-semibold py-3.5 px-5 rounded-xl transition text-sm sm:text-base"
+                  >
+                    <span>I am Interested</span>
+                    <span>→</span>
+                  </Link>
+
+                  <SaveHomeButton
+                    homeId={home.id}
+                    className="w-full inline-flex items-center justify-center gap-2 bg-white border border-slate-200 text-slate-800 font-medium py-3.5 rounded-xl hover:bg-slate-50 transition"
+                  />
+
+                  <Link
+                    to="/pre-approved"
+                    className="flex items-center justify-center w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-3.5 rounded-xl transition text-sm sm:text-base"
+                  >
+                    Get Pre-Approved
+                  </Link>
+                </div>
+              </div>
+
+              {/* Finance Calculator */}
+              <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 sm:p-6">
+                <div className="flex bg-slate-100 rounded-xl p-1 mb-5">
+                  <button
+                    type="button"
+                    onClick={() => setFinanceTab('financing')}
+                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
+                      financeTab === 'financing' ? 'bg-emerald-800 text-white' : 'text-slate-600'
+                    }`}
+                  >
+                    Financing
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFinanceTab('rent')}
+                    className={`flex-1 py-2 text-sm font-semibold rounded-lg transition ${
+                      financeTab === 'rent' ? 'bg-emerald-800 text-white' : 'text-slate-600'
+                    }`}
+                  >
+                    Rent-to-Own
+                  </button>
+                </div>
+
+                <div className="mb-5">
+                  <div className="flex justify-between text-sm mb-2">
+                    <span className="text-slate-500 font-medium">TERM DURATION</span>
+                    <span className="font-bold">{termMonths} MONTHS</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="12"
+                    max="60"
+                    step="6"
+                    value={termMonths}
+                    onChange={(e) => setTermMonths(Number(e.target.value))}
+                    className="w-full accent-emerald-700"
+                  />
+                </div>
+
+                {financeTab === 'financing' ? (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Total Price</span>
+                      <span>${price.toLocaleString()}</span>
                     </div>
-
-                    <div className="px-2 pb-1 space-y-1">
-                      <h3 className="font-bold text-[#1A1D20] text-sm truncate">
-                        {home.title || 'Modular Home'}
-                      </h3>
-
-                      <div className="text-xs text-slate-500 font-medium truncate">
-                        {home.address || home.location || 'Location upon request'}
-                        {home.city && `, ${home.city}`}
-                        {home.state && `, ${home.state}`}
-                      </div>
-
-                      <div className="text-[11px] text-slate-400 font-medium">
-                        {home.bedrooms || home.beds || 0} Beds &nbsp;|&nbsp; {home.bathrooms || home.baths || 0} Baths &nbsp;|&nbsp; {home.living_area_min || home.sqft || '—'} Sq Ft
-                      </div>
-
-                      <div className="text-sm font-extrabold text-[#C9945B] pt-1">
-                        {formatPrice(home)}
-                      </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Down Payment (10%)</span>
+                      <span>${downPayment.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t font-semibold">
+                      <span>Monthly Term Rate</span>
+                      <span className="text-emerald-700">${monthlyFinancing}/mo</span>
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-2 gap-2 pt-4 mt-2 border-t border-slate-100 px-1">
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        navigate(`/homes/${home.id}`)
-                      }}
-                      className="w-full py-2 rounded-xl text-xs font-semibold border border-slate-200 text-slate-700 hover:bg-slate-50 transition"
-                    >
-                      View Details
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedHome(home)
-                      }}
-                      className="w-full py-2 rounded-xl text-xs font-semibold bg-[#C9945B] hover:bg-[#b58149] text-white shadow-sm transition"
-                    >
-                      Interested
-                    </button>
+                ) : (
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Base Monthly Rent</span>
+                      <span>${baseRent}/mo</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Equity Builder</span>
+                      <span>${equityBuilder}/mo</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t font-semibold">
+                      <span>Total Monthly</span>
+                      <span className="text-emerald-700">${totalRentPayment}/mo</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* PAGINATION CONTROLS */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-6 border-t border-slate-200/60">
-            <span className="text-xs font-medium text-slate-500">
-              Showing Page <strong className="text-slate-800">{currentPage}</strong> of <strong className="text-slate-800">{lastPage}</strong>
-            </span>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                disabled={currentPage <= 1 || loading}
-                onClick={() => goToPage(Math.max(currentPage - 1, 1))}
-                className="px-5 py-2 rounded-full text-xs font-semibold border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-sm"
-              >
-                ← Previous
-              </button>
-
-              <button
-                type="button"
-                disabled={currentPage >= lastPage || loading}
-                onClick={() => goToPage(currentPage + 1)}
-                className="px-6 py-2 rounded-full text-xs font-bold bg-[#1A1D20] text-white hover:bg-black disabled:opacity-40 disabled:cursor-not-allowed transition shadow-md"
-              >
-                Next →
-              </button>
+                )}
+              </div>
             </div>
           </div>
-        </section>
-
-        {/* Protected Feature Triggers */}
-        <div className="text-center pt-8 border-t border-slate-200/60 flex flex-wrap justify-center gap-4">
-          <button
-            onClick={() => handleProtectedClick('/pre-approved')}
-            className="text-xs font-semibold text-slate-500 hover:text-[#C9945B] transition"
-          >
-            Get Pre-Approved →
-          </button>
-          <button
-            onClick={() => handleProtectedClick('/book-appointment')}
-            className="text-xs font-semibold text-slate-500 hover:text-[#C9945B] transition"
-          >
-            Book Appointment →
-          </button>
         </div>
-      </main>
+      </div>
 
-      <footer className="bg-[#1A1D20] text-slate-400 py-8 text-center text-xs border-t border-slate-800">
-        <p>© {new Date().getFullYear()} Nexora Realty. All rights reserved.</p>
-      </footer>
-
-      <InquiryModal
-        home={selectedHome}
-        onClose={() => setSelectedHome(null)}
-      />
-
-      <LoginRequiredModal
-        isOpen={showLoginModal}
-        onClose={() => setShowLoginModal(false)}
-        title="Account Required"
-        redirectTo={redirectPath}
-      />
+      {/* Lightbox */}
+      {lightboxOpen && gallery.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-3 sm:p-4">
+          <button
+            type="button"
+            onClick={() => setLightboxOpen(false)}
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 text-white text-3xl sm:text-4xl z-10"
+          >
+            ×
+          </button>
+          <button
+            type="button"
+            onClick={prevImage}
+            className="absolute left-2 sm:left-4 text-white text-4xl sm:text-5xl z-10"
+          >
+            ‹
+          </button>
+          <img
+            src={gallery[currentIndex]}
+            alt="Gallery"
+            className="max-h-[75vh] sm:max-h-[85vh] max-w-full object-contain rounded-lg"
+          />
+          <button
+            type="button"
+            onClick={nextImage}
+            className="absolute right-2 sm:right-4 text-white text-4xl sm:text-5xl z-10"
+          >
+            ›
+          </button>
+          <div className="absolute bottom-4 sm:bottom-6 text-white text-sm">
+            {currentIndex + 1} / {gallery.length}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
